@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: loopclub_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: loopclub
+      POSTGRES_PASSWORD: loopclub123
+      POSTGRES_DB: loopclub_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - loopclub_pgdata:/var/lib/postgresql/data
+
+volumes:
+  loopclub_pgdata:
