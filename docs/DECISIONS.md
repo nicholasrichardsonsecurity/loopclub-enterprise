@@ -113,3 +113,59 @@ Este documento registra as principais decisões arquiteturais do projeto, usando
 **Consequências:**
 - Positivas: documentação sempre atualizada, onboarding mais rápido, rastreabilidade das decisões
 - Negativas: custo adicional em cada tarefa, exige disciplina da equipe
+
+---
+
+## ADR-009 — Privacy by design e LGPD desde o início
+
+**Status:** Aceito
+
+**Contexto:** O LoopClub trata dados pessoais de múltiplos perfis (clientes, empresas, funcionários) e está sujeito à LGPD. Adequar o sistema após pronto é mais caro e arriscado.
+
+**Decisão:** Adotar privacy by design como princípio arquitetural desde a concepção. Documentar fundamentos LGPD, mapa de dados, política de retenção, resposta a incidentes e direitos dos titulares antes da produção.
+
+**Consequências:**
+- Positivas: conformidade mais barata, riscos identificados cedo, confiança dos usuários
+- Negativas: custo adicional de documentação e planejamento, necessidade de revisão jurídica externa
+
+---
+
+## ADR-010 — Controle de dados minimizado na v1.0
+
+**Status:** Aceito
+
+**Contexto:** Dados como CPF, data de nascimento e localização precisa aumentam o risco e a obrigação de conformidade sem agregar valor ao MVP.
+
+**Decisão:** Na v1.0, coletar apenas nome, e-mail, telefone (opcional) e role. CPF, data de nascimento e geolocalização serão avaliados caso a caso em versões futuras.
+
+**Consequências:**
+- Positivas: menor exposição de dados sensíveis, compliance mais simples, menos riscos
+- Negativas: algumas features futuras podem exigir dados adicionais (ex.: CPF em nota fiscal)
+
+---
+
+## ADR-011 — Refresh token com rotação para sessão segura
+
+**Status:** Proposto (pendente de implementação)
+
+**Contexto:** JWT sem refresh token força sessões longas (1 dia) ou obriga re-login frequente. Rotação de refresh token permite sessões longas com revogação segura.
+
+**Decisão:** Implementar refresh token armazenado em banco (tabela `RefreshToken`), com rotação a cada uso e revogação manual por usuário.
+
+**Consequências:**
+- Positivas: sessões seguras com revogação, expiração curta de access token
+- Negativas: complexidade adicional, estado no banco para refresh tokens, necessidade de limpeza de tokens expirados
+
+---
+
+## ADR-012 — Auditoria de ações críticas
+
+**Status:** Proposto (pendente de implementação)
+
+**Contexto:** Para compliance LGPD (art. 37) e rastreabilidade de incidentes, ações críticas precisam ser registradas com data, autor e detalhes.
+
+**Decisão:** Implementar registro obrigatório em `AuditLog` para ações: login, criação de usuário, alteração de role, block/unblock de empresa, exclusão de dados, alteração de permissões.
+
+**Consequências:**
+- Positivas: rastreabilidade completa, suporte a investigações, compliance LGPD
+- Negativas: aumento de volume de dados, necessidade de política de retenção para audit logs

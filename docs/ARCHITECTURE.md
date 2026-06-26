@@ -44,7 +44,7 @@ loopclub_enterprise_sprint01/
 ├── backend/              # NestJS — API REST
 ├── database/             # Scripts SQL auxiliares
 ├── docker/               # Configurações Docker
-├── docs/                 # Documentação
+├── docs/                 # Documentação (inclui LGPD, privacidade, segurança)
 ├── infra/                # Configurações de infraestrutura
 └── packages/             # Pacotes compartilhados (futuro)
 ```
@@ -89,3 +89,61 @@ Dashboard administrativo com layout de sidebar. Atualmente contém:
 ## Multi-tenancy
 
 O isolamento entre empresas é feito por `companyId`. Cada registro sensível (progresso, transações, programas) referencia a empresa proprietária. Consultas devem sempre filtrar por `companyId` para evitar vazamento de dados entre tenants.
+
+> **Aviso:** A validação de tenant isolation ainda não está implementada. Nenhum endpoint atual verifica se o usuário pertence à empresa que está acessando.
+
+## Arquitetura de segurança (planejada)
+
+```mermaid
+graph TB
+    subgraph "Camada de Apresentação"
+        REQ[Requisição HTTP]
+    end
+
+    subgraph "Camada de Segurança"
+        AUTH[JWT AuthGuard]
+        RBAC[RolesGuard]
+        TENANT[Tenant Validation]
+        RATE[Rate Limiter]
+    end
+
+    subgraph "Camada de Negócio"
+        CTRL[Controller]
+        SRV[Service]
+        AUDIT[AuditLog]
+    end
+
+    subgraph "Camada de Dados"
+        PRISMA[Prisma ORM]
+        DB[(PostgreSQL)]
+    end
+
+    REQ --> AUTH
+    AUTH --> RBAC
+    RBAC --> TENANT
+    TENANT --> RATE
+    RATE --> CTRL
+    CTRL --> SRV
+    SRV --> AUDIT
+    SRV --> PRISMA
+    PRISMA --> DB
+```
+
+### Fluxo futuro de autorização
+
+1. Requisição chega com JWT no header `Authorization`
+2. `AuthGuard` valida o token e extrai `userId` e `role`
+3. `RolesGuard` verifica se o perfil tem permissão para a rota
+4. Camada de serviço valida `companyId` contra o token
+5. Ação é registrada no `AuditLog` se for uma operação crítica
+6. Dados retornados são filtrados conforme o perfil (não expor dados de outros tenants)
+
+> **Pendência:** As camadas JWT, RBAC e Tenant estão planejadas mas não implementadas.
+
+## Documentos de arquitetura relacionados
+
+- [LGPD.md](LGPD.md) — Adequação à LGPD e privacy by design
+- [PRIVACY.md](PRIVACY.md) — Princípios de privacidade do produto
+- [SECURITY.md](SECURITY.md) — Medidas de segurança
+- [THREAT-MODEL.md](THREAT-MODEL.md) — Modelo de ameaças
+- [DATA-MAP.md](DATA-MAP.md) — Mapa de dados pessoais

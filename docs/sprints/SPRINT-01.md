@@ -31,6 +31,11 @@ Criar a base técnica e executável do LoopClub Enterprise, com monorepo organiz
 11. App Flutter com splash, login e carteira mockada (3 telas)
 12. Documentação viva completa (15 arquivos)
 13. Arquivos de documentação antigos e duplicados removidos (`docs/api/`, `docs/architecture/`, `docs/database/`)
+14. Documentação LGPD e privacidade (7 novos arquivos: LGPD.md, PRIVACY.md, DATA-MAP.md, RETENTION-POLICY.md, INCIDENT-RESPONSE.md, THREAT-MODEL.md, DATA-SUBJECT-RIGHTS.md)
+15. Mapa de dados com 13 categorias e riscos
+16. Modelo de ameaças com 16 ameaças mapeadas com controles
+17. 4 novos ADRs (privacy by design, dados minimizados, refresh token, auditoria)
+18. Atualização de SECURITY.md, ARCHITECTURE.md, DATABASE.md, API.md, DECISIONS.md, STATUS.md, CLAUDE.md
 
 ## Critérios de aceite
 
@@ -84,21 +89,42 @@ docker compose up -d postgres
 
 ## Pendências e problemas conhecidos
 
+### Segurança e LGPD
 - **Rotas não protegidas:** Nenhum `@UseGuards()`, `AuthGuard` ou `RolesGuard` implementado
+- **Risco de enumeração:** `/auth/register` retorna erro específico se e-mail existe
+- **Risco de brute force:** `/auth/login` não possui rate limiting
+- **Risco de IDOR:** rotas com parâmetros de ID não validam permissão
+- **Dados expostos:** `GET /users` expõe todos os usuários sem filtro por empresa
+- **Sem logs de auditoria:** ações não são registradas no AuditLog
+- **Sem refresh token:** apenas access token com expiração de 1 dia
+- **Sem política de senha forte:** qualquer senha com 6+ caracteres é aceita
+- **Sem sanitização de logs:** dados sensíveis podem vazar em logs
+- **CORS aberto:** configurado para desenvolvimento, sem restrição
+
+### Funcionalidades
 - **Zero testes:** Nenhum arquivo `.spec.ts` no projeto
 - **Admin Web usa dados mockados** (sem integração com API real)
 - **App Flutter usa dados mockados** (sem integração com API real)
 - **CompanyUser não é criado no registro** — vínculo empresa-usuário não existe
 - **Sem seed de dados iniciais** — Admin Master precisa ser criado manualmente
 - **Endpoints de company não validam permissão** — qualquer um pode criar/alterar empresa
-- **Sem refresh token** — apenas access token com expiração de 1 dia
+
+### LGPD e privacidade
+- **DPO não nomeado:** encarregado de proteção de dados não definido
+- **Canal de titulares não criado:** sem canal para exercício de direitos LGPD
+- **Bases legais não validadas:** dependem de revisão jurídica
+- **Entidades LGPD não implementadas:** PrivacyPolicyVersion, UserConsent, DataSubjectRequest, RefreshToken
+- **Política de retenção não automatizada:** prazos propostos mas sem job de execução
 
 ## Próximos passos (Sprint 02)
 
 1. Implementar JWT Guards em todas as rotas existentes
 2. RolesGuard com decorator @Roles
-3. Refresh token
+3. Refresh token com rotação
 4. Vincular CompanyUser no registro (usuário como COMPANY_OWNER)
 5. Seed inicial (Admin Master padrão)
-6. Testes de integração para módulo Auth
-7. Iniciar validação de multi-tenancy
+6. Rate limiting em rotas de autenticação
+7. Sanitização de logs (Interceptor NestJS)
+8. Registro de auditoria para ações críticas (AuditLog)
+9. Testes de integração para módulo Auth
+10. Iniciar validação de multi-tenancy

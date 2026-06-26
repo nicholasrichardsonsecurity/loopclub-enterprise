@@ -138,9 +138,16 @@ Authorization: Bearer <token>
 | Dashboard | Métricas por empresa, métricas globais |
 | Audit | Consulta de logs de auditoria |
 
-## Observações
+## Observações de segurança
 
 - **Validação:** DTOs validam tipos, campos obrigatórios e formato de e-mail
 - **Erros:** Respostas seguem padrão NestJS com status code e mensagem
 - **CORS:** Habilitado para desenvolvimento local
 - **Senhas:** Hash bcrypt com 10 rounds
+- **Nenhuma rota possui guarda JWT** — todos os endpoints estão abertos (a ser corrigido na Sprint 02)
+- **Risco de enumeração:** `/auth/register` retorna erro específico se e-mail já existe, permitindo enumeração de usuários
+- **Risco de brute force:** `/auth/login` não possui rate limiting
+- **Risco de IDOR:** rotas com parâmetros de ID não validam permissão do usuário
+- **Dados expostos:** `GET /users` expõe todos os usuários sem filtro por empresa ou perfil
+- **Sem logs de auditoria:** ações nos endpoints não são registradas no AuditLog
+- **Consulte:** [SECURITY.md](SECURITY.md), [THREAT-MODEL.md](THREAT-MODEL.md) e [DATA-MAP.md](DATA-MAP.md) para mapeamento completo de riscos

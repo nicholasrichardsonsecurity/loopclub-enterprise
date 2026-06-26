@@ -15,6 +15,7 @@
 1. Leia a documentação relevante em `docs/` antes de fazer alterações.
 2. Verifique se a funcionalidade já existe ou está planejada.
 3. Nunca declare funcionalidades como prontas sem validar no código.
+4. **Verifique impacto em LGPD, privacidade, segurança, retenção, auditoria, segregação multiempresa e exposição de dados antes de implementar qualquer funcionalidade.**
 
 ### Após alterar o projeto
 
@@ -22,6 +23,7 @@
 2. Atualize [STATUS.md](docs/STATUS.md) se necessário.
 3. Atualize [CHANGELOG.md](CHANGELOG.md) se necessário.
 4. Atualize o documento da sprint atual em [docs/sprints/](docs/sprints/).
+5. **Se a alteração envolver dados pessoais, atualize [DATA-MAP.md](docs/DATA-MAP.md) e [LGPD.md](docs/LGPD.md).**
 
 ### Segurança
 
@@ -48,6 +50,20 @@
 - [ ] Sprint atual atualizada (docs/sprints/)
 - [ ] Nenhum segredo incluído
 - [ ] git status revisado
+
+### Checklist LGPD e segurança (obrigatório em toda tarefa)
+
+- [ ] **Coleta mínima de dados:** o novo campo/feature é realmente necessário?
+- [ ] **Finalidade documentada:** a finalidade do tratamento está registrada em DATA-MAP.md?
+- [ ] **Base legal avaliada:** qual base legal da LGPD justifica este tratamento?
+- [ ] **Acesso restrito:** a funcionalidade respeita RBAC e tenant isolation?
+- [ ] **Tenant isolation verificado:** dados de uma empresa não vazam para outra?
+- [ ] **Logs sem dados sensíveis:** nenhum dado pessoal ou token será registrado em logs
+- [ ] **Segredos fora do Git:** nenhuma credencial hardcoded ou .env versionado
+- [ ] **Retenção avaliada:** o prazo de retenção do novo dado está definido?
+- [ ] **Exclusão ou anonimização avaliada:** como o dado será removido quando não for mais necessário?
+- [ ] **Risco de incidente avaliado:** a funcionalidade introduz nova ameaça? Atualizar THREAT-MODEL.md
+- [ ] **Documentação atualizada:** LGPD.md, PRIVACY.md e DATA-MAP.md refletem a mudança
 
 ## Comandos úteis
 
@@ -86,6 +102,13 @@ docker compose up -d postgres  # Iniciar PostgreSQL
 | [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Fluxo de desenvolvimento |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deploy e CI/CD |
 | [SECURITY.md](docs/SECURITY.md) | Medidas de segurança |
+| [LGPD.md](docs/LGPD.md) | Adequação à LGPD |
+| [PRIVACY.md](docs/PRIVACY.md) | Princípios de privacidade do produto |
+| [DATA-MAP.md](docs/DATA-MAP.md) | Mapa de dados e riscos |
+| [RETENTION-POLICY.md](docs/RETENTION-POLICY.md) | Política de retenção e descarte |
+| [INCIDENT-RESPONSE.md](docs/INCIDENT-RESPONSE.md) | Plano de resposta a incidentes |
+| [THREAT-MODEL.md](docs/THREAT-MODEL.md) | Modelo de ameaças |
+| [DATA-SUBJECT-RIGHTS.md](docs/DATA-SUBJECT-RIGHTS.md) | Direitos dos titulares LGPD |
 | [ROADMAP.md](docs/ROADMAP.md) | Planejamento de sprints |
 | [STATUS.md](docs/STATUS.md) | Estado de cada funcionalidade |
 | [DECISIONS.md](docs/DECISIONS.md) | Novas decisões arquiteturais (ADR) |

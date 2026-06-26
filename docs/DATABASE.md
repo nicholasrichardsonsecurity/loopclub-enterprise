@@ -177,6 +177,23 @@ Auditoria de ações no sistema.
 | entityId | String? | ID da entidade |
 | metadata | JSON? | Dados adicionais |
 
+## Entidades propostas (LGPD e segurança)
+
+As entidades abaixo são planejadas para conformidade com LGPD e segurança. Não fazem parte do schema atual e devem ser implementadas conforme necessário.
+
+| Entidade | Finalidade | Prioridade |
+|----------|-----------|------------|
+| `PrivacyPolicyVersion` | Versionamento das políticas de privacidade | Média |
+| `TermsVersion` | Versionamento dos termos de uso | Média |
+| `UserConsent` | Registro de consentimento do usuário (base legal) | Alta |
+| `DataSubjectRequest` | Registro de solicitações de titulares (LGPD art. 18) | Alta |
+| `SecurityIncident` | Registro de incidentes de segurança | Alta |
+| `RefreshToken` | Armazenamento de refresh tokens com revogação | Alta |
+| `Session` | Controle de sessões ativas por usuário | Média |
+| `DataRetentionJob` | Job programado para execução da política de retenção | Média |
+
+> **Nota:** Essas entidades são propostas e não devem ser implementadas sem análise de impacto e validação da arquitetura.
+
 ## Diagrama de relacionamentos
 
 ```mermaid
