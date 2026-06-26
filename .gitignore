@@ -1,0 +1,19 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+dist/
+
+# Next.js
+.next/
+
+# Flutter
+.dart_tool/
+build/
+
+# IDE
+.vscode/
+.idea/
