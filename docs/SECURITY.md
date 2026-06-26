@@ -9,6 +9,8 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
 ### Autenticação e senhas
 - **Hash de senhas:** bcrypt com 10 rounds — `validado manualmente` (confirmado no código-fonte `auth.service.ts`)
 - **JWT:** tokens gerados com segredo configurável via `.env`, expiração de 1 dia
+- **JwtStrategy:** valida assinatura, expiração e payload (sub, role) — `implementado e validado`
+- **JwtAuthGuard:** protege rotas de users e companies; decorator `@Public()` permite exceções — `implementado e validado`
 - **Validação de entrada:** DTOs com `class-validator` garantem tipos e formatos
 - **Whitelist de dados:** `ValidationPipe` com `whitelist: true` rejeita campos não esperados
 - **`passwordHash` não exposto:** `select` limita retorno a 5 campos (id, name, email, role, status) — `validado manualmente` (resposta do register não contém hash)
@@ -31,7 +33,8 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
 ## Obrigatórios (pendentes de implementação)
 
 ### Controle de acesso
-- [ ] Guardas JWT em todas as rotas (AuthGuard)
+- [x] Guardas JWT em users e companies (JwtAuthGuard) — `implementado e validado`
+- [ ] RolesGuard com decorator @Roles (RBAC) — pendente
 - [ ] RBAC completo com decorators de perfil (RolesGuard)
 - [ ] Validação de tenant isolation (companyId em todas as consultas)
 - [ ] Princípio do menor privilégio em todas as permissões
@@ -51,7 +54,12 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
 ### Logs e monitoramento
 - [ ] Interceptor NestJS para sanitização automática de logs
 - [ ] Auditoria de ações sensíveis (implementar registro em AuditLog)
-- **Observação:** senhas e tokens não devem aparecer em logs — validado manualmente (nenhuma rota de autenticação loga body da requisição)
+- **Observação:** senhas e tokens não devem aparecer em logs — validado manualmente (nenhuma rota de autenticação loga body da requisição). Tokens JWT no header `Authorization` não são registrados pelo NestJS em logs padrão.
+
+### Controle de acesso — pendências
+- **RBAC (RolesGuard):** pendente — qualquer token JWT válido acessa todas as rotas protegidas
+- **Isolamento multiempresa:** pendente — consultas não filtram por `companyId`
+- **Refresh token e revogação de sessão:** pendentes — token JWT tem expiração fixa de 1 dia sem revogação
 
 ### QR Code e tokens
 - [ ] Validação de token QR Code com expiração curta (30s)

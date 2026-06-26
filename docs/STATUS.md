@@ -31,7 +31,9 @@ Atualizado em: 26/06/2026
 - [x] **Helmet (headers de segurança)** — `validado manualmente`. CSP, HSTS, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection confirmados no response.
 - [x] **CORS restritivo por ambiente** — `validado manualmente`. Lê `CORS_ORIGIN` do `.env`. Header `Access-Control-Allow-Origin` confirmado.
 - [x] **x-powered-by removido** — `validado manualmente`. Header ausente no response.
-- [x] **Swagger /docs** — `validado manualmente`. Retorna HTTP 200. Decorators Swagger documentam register (201, 409, 400) e login (200, 401, 400).
+- [x] **Swagger /docs** — `validado manualmente`. Retorna HTTP 200. Decorators Swagger documentam register (201, 409, 400) e login (200, 401, 400). Rotas protegidas (users, companies) documentadas com `@ApiBearerAuth()` e `@ApiUnauthorizedResponse()`. Swagger Bearer Auth validado.
+- [x] **JWT Guard — rotas protegidas** — `implementado` e `validado manualmente`. JwtStrategy com validação de sub/role e expiração. JwtAuthGuard com suporte a `@Public()`. UsersController e CompaniesController protegidos. Rotas sem token retornam 401; token inválido retorna 401; token válido retorna 200.
+- [x] **Rotas públicas permanecem públicas** — `validado manualmente`. `GET /auth/health`, `POST /auth/register`, `POST /auth/login` continuam acessíveis sem token.
 
 ## ✅ Implementado (não validado)
 
@@ -76,11 +78,11 @@ Atualizado em: 26/06/2026
 ### Módulos do backend (não validados)
 
 - [x] **Auth — GET /auth/health** — `implementado`. Retorna `{ status: 'ok', service: 'auth' }`. **Pendente:** testar.
-- [x] **Users — GET /users** — `implementado`. Lista usuários com `select` limitado a 7 campos, ordenado por `createdAt desc`. **Pendente:** testar.
-- [x] **Companies — GET /companies** — `implementado`. Lista empresas ordenadas por criação. **Pendente:** testar.
-- [x] **Companies — POST /companies** — `implementado`. Cria empresa com DTO validado. **Pendente:** testar.
-- [x] **Companies — PATCH /companies/:id/block** — `implementado`. Altera status para `blocked`. **Pendente:** testar.
-- [x] **Companies — PATCH /companies/:id/unblock** — `implementado`. Altera status para `active`. **Pendente:** testar.
+- [x] **Users — GET /users** — `implementado` e `protegido por JWT`. Lista usuários com `select` limitado a 7 campos. Requer token Bearer.
+- [x] **Companies — GET /companies** — `implementado` e `protegido por JWT`. Lista empresas. Requer token Bearer.
+- [x] **Companies — POST /companies** — `implementado` e `protegido por JWT`. Cria empresa com DTO validado. Requer token Bearer.
+- [x] **Companies — PATCH /companies/:id/block** — `implementado` e `protegido por JWT`. Altera status para `blocked`. Requer token Bearer.
+- [x] **Companies — PATCH /companies/:id/unblock** — `implementado` e `protegido por JWT`. Altera status para `active`. Requer token Bearer.
 
 ### Frontends (esqueletos)
 
@@ -107,8 +109,9 @@ Atualizado em: 26/06/2026
 
 ### Próximos itens a implementar (Sprint 02)
 
-- [ ] Guardas JWT (AuthGuard) em todas as rotas existentes
-- [ ] RolesGuard com decorator @Roles (RBAC)
+- [x] Guardas JWT (JwtAuthGuard) em users e companies — `implementado e validado`
+- [ ] RolesGuard com decorator @Roles (RBAC) — pendente
+- [ ] Validação de token expirado — pendente de teste específico
 - [ ] Refresh token com rotação e revogação
 - [ ] Vincular CompanyUser no registro (criar vínculo empresa-usuário)
 - [ ] Seed inicial (Admin Master padrão)

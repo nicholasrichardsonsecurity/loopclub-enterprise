@@ -11,6 +11,22 @@ A API utiliza JWT Bearer Token. Endpoints protegidos exigem o header:
 Authorization: Bearer <token>
 ```
 
+### Comportamentos de autenticação
+
+| Cenário | Resposta |
+|---------|----------|
+| Rota protegida sem token | HTTP 401 Unauthorized — `{ "message": "Token inválido ou ausente." }` |
+| Rota protegida com token inválido | HTTP 401 Unauthorized |
+| Rota protegida com token expirado | ⚠️ Pendente de validação |
+| Rota protegida com token válido | Acesso permitido conforme a rota |
+| Rota pública sem token | Acesso permitido |
+
+### Rotas públicas
+
+- `GET /auth/health`
+- `POST /auth/register`
+- `POST /auth/login`
+
 ## Endpoints implementados
 
 ### Auth — `/auth`
@@ -111,7 +127,7 @@ Authorization: Bearer <token>
 
 | Método | Rota | Descrição | Autenticação |
 |--------|------|-----------|-------------|
-| GET | `/users` | Listar todos os usuários | Não |
+| GET | `/users` | Listar todos os usuários | JWT Bearer Token |
 
 **Resposta (200):**
 ```json
@@ -132,10 +148,10 @@ Authorization: Bearer <token>
 
 | Método | Rota | Descrição | Autenticação |
 |--------|------|-----------|-------------|
-| GET | `/companies` | Listar todas as empresas | Não |
-| POST | `/companies` | Criar nova empresa | Não |
-| PATCH | `/companies/:id/block` | Bloquear empresa | Não |
-| PATCH | `/companies/:id/unblock` | Desbloquear empresa | Não |
+| GET | `/companies` | Listar todas as empresas | JWT Bearer Token |
+| POST | `/companies` | Criar nova empresa | JWT Bearer Token |
+| PATCH | `/companies/:id/block` | Bloquear empresa | JWT Bearer Token |
+| PATCH | `/companies/:id/unblock` | Desbloquear empresa | JWT Bearer Token |
 
 #### POST /companies
 
@@ -164,7 +180,7 @@ Authorization: Bearer <token>
 
 | Módulo | Endpoints |
 |--------|-----------|
-| Auth | Guardas JWT, refresh token, logout |
+| Auth | Refresh token, logout, revogação de sessão |
 | Companies | Update, delete, busca por ID |
 | Plans | CRUD completo de planos |
 | Subscriptions | CRUD de assinaturas |
@@ -180,7 +196,9 @@ Authorization: Bearer <token>
 - **Erros:** Respostas seguem padrão NestJS com status code e mensagem
 - **CORS:** Habilitado para desenvolvimento local
 - **Senhas:** Hash bcrypt com 10 rounds
-- **Nenhuma rota possui guarda JWT** — todos os endpoints estão abertos (a ser corrigido na Sprint 02)
+- **Rotas públicas:** `GET /auth/health`, `POST /auth/register`, `POST /auth/login` — não exigem autenticação — `validado manualmente`
+- **Rotas protegidas (JWT Bearer):** `GET /users`, `GET /companies`, `POST /companies`, `PATCH /companies/:id/block`, `PATCH /companies/:id/unblock` — exigem token JWT válido no header `Authorization: Bearer <token>` — `validado manualmente`
+- **RolesGuard (RBAC) não implementado** — qualquer token JWT válido acessa todas as rotas protegidas (a ser corrigido na Sprint 02)
 - **Risco de enumeração:** `/auth/register` retorna erro específico se e-mail já existe, permitindo enumeração de usuários
 - **Risco de brute force:** `/auth/login` não possui rate limiting
 - **Risco de IDOR:** rotas com parâmetros de ID não validam permissão do usuário

@@ -40,6 +40,7 @@ Criar a base técnica e executável do LoopClub Enterprise, com monorepo organiz
 20. Hardening de segurança mínima: Helmet, CORS restritivo, remoção de x-powered-by
 21. Correção de códigos HTTP do Auth: register retorna 201/409/400, login retorna 200/401
 22. Decorators Swagger do Auth documentam respostas corretas (register: 201, 409, 400; login: 200, 401, 400)
+23. JwtStrategy + JwtAuthGuard implementados: users e companies protegidos com JWT Bearer; auth público via `@Public()`
 
 ## Critérios de aceite
 
@@ -49,6 +50,7 @@ Criar a base técnica e executável do LoopClub Enterprise, com monorepo organiz
 | Backend instala dependências e inicia | ⚠️ Não validado | `npm install` não executado; `nest build` compila sem erros |
 | Swagger abre em `/docs` | ✅ Validado | `curl http://localhost:3000/docs` retorna HTTP 200. Decorators Swagger documentam register (201, 409, 400) e login (200, 401, 400) |
 | Auth endpoints retornam códigos HTTP corretos | ✅ Validado | register: 201, 409, 400; login: 200, 401 — todos testados via `curl` |
+| Rotas protegidas com JWT | ✅ Validado | users e companies: sem token retornam 401, com token válido retornam 200 |
 | Prisma gera client e executa migration | ⚠️ Não testado | Migration `init` existe no diretório, mas `prisma migrate dev` não foi reexecutado |
 | Admin Web abre em `localhost:3001` | ⚠️ Não testado | Next.js configurado na porta 3001, mas sem execução |
 | Flutter executa splash/login/carteira | ⚠️ Não testado | 3 telas implementadas, mas sem `flutter run` na sessão
@@ -96,6 +98,23 @@ Testes executados em 26/06/2026 contra `localhost:3000` com o servidor rodando v
 | Credenciais válidas | HTTP 200 OK — `{ accessToken, user: { id, name, email, role, status } }` |
 | Senha incorreta | HTTP 401 Unauthorized — `{ "message": "Credenciais inválidas." }` |
 
+### JWT Guard — rotas protegidas
+
+| Cenário | Resultado |
+|---------|-----------|
+| GET /users sem token | HTTP 401 — `{ "message": "Token inválido ou ausente." }` |
+| GET /companies sem token | HTTP 401 |
+| POST /companies sem token | HTTP 401 |
+| GET /users com token válido | HTTP 200 — lista de usuários |
+| GET /companies com token válido | HTTP 200 — lista de empresas |
+| POST /companies com token válido | HTTP 201 — empresa criada |
+| Token inválido (payload adulterado) | HTTP 401 |
+| Token com string aleatória | HTTP 401 |
+| GET /auth/health sem token | HTTP 200 — permanece pública |
+| POST /auth/register sem token | HTTP 201 — permanece pública |
+| POST /auth/login sem token | HTTP 200 — permanece pública |
+| Token expirado | ⚠️ Pendente de teste específico |
+
 ### Segurança — headers e hardening
 
 | Verificação | Resultado |
@@ -114,18 +133,18 @@ Testes executados em 26/06/2026 contra `localhost:3000` com o servidor rodando v
 | GET | `/auth/health` | Health check | Não |
 | POST | `/auth/register` | Registrar usuário | Não |
 | POST | `/auth/login` | Login | Não |
-| GET | `/users` | Listar usuários | Não |
-| GET | `/companies` | Listar empresas | Não |
-| POST | `/companies` | Criar empresa | Não |
-| PATCH | `/companies/:id/block` | Bloquear empresa | Não |
-| PATCH | `/companies/:id/unblock` | Desbloquear empresa | Não |
+| GET | `/users` | Listar usuários | Sim (JWT Bearer) |
+| GET | `/companies` | Listar empresas | Sim (JWT Bearer) |
+| POST | `/companies` | Criar empresa | Sim (JWT Bearer) |
+| PATCH | `/companies/:id/block` | Bloquear empresa | Sim (JWT Bearer) |
+| PATCH | `/companies/:id/unblock` | Desbloquear empresa | Sim (JWT Bearer) |
 
-> **Nota:** Nenhuma rota possui guarda JWT. A proteção será implementada na Sprint 02.
+> **Nota:** Rotas de Auth (health, register, login) são públicas. Demais rotas exigem JWT Bearer Token via header `Authorization: Bearer <token>`. RolesGuard (RBAC) ainda não implementado — qualquer token válido acessa todas as rotas protegidas.
 
 ## Pendências e problemas conhecidos
 
 ### Segurança e LGPD
-- **Rotas não protegidas:** Nenhum `@UseGuards()`, `AuthGuard` ou `RolesGuard` implementado
+- ~~**Rotas não protegidas:** Nenhum `@UseGuards()`, `AuthGuard` ou `RolesGuard` implementado~~ (corrigido — JwtAuthGuard protege users e companies)
 - **Risco de enumeração:** `/auth/register` retorna erro específico se e-mail existe
 - **Risco de brute force:** `/auth/login` não possui rate limiting
 - **Risco de IDOR:** rotas com parâmetros de ID não validam permissão
@@ -161,8 +180,8 @@ Testes executados em 26/06/2026 contra `localhost:3000` com o servidor rodando v
 
 ## Próximos passos (Sprint 02)
 
-1. Implementar JWT Guards em todas as rotas existentes
-2. RolesGuard com decorator @Roles
+1. ~~Implementar JWT Guards em todas as rotas existentes~~ (concluído)
+2. RolesGuard com decorator @Roles (RBAC)
 3. Refresh token com rotação
 4. Vincular CompanyUser no registro (usuário como COMPANY_OWNER)
 5. Seed inicial (Admin Master padrão)

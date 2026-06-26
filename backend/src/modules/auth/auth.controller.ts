@@ -3,17 +3,20 @@ import { ApiBadRequestResponse, ApiConflictResponse, ApiCreatedResponse, ApiOkRe
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { Public } from './decorators/public.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @Get('health')
   health() {
     return { status: 'ok', service: 'auth' };
   }
 
+  @Public()
   @Post('register')
   @ApiCreatedResponse({ description: 'Cadastro criado com sucesso.' })
   @ApiConflictResponse({ description: 'E-mail já cadastrado.' })
@@ -22,6 +25,7 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: 'Login realizado com sucesso.' })

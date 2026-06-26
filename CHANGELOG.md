@@ -4,18 +4,6 @@ Todas as mudanças notáveis neste projeto serão documentadas aqui.
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este projeto segue [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
-
-### Validado
-
-- `POST /auth/register` — retorno HTTP 201 (cadastro novo) e HTTP 409 (e-mail duplicado) validados manualmente via `curl`
-- `POST /auth/login` — retorno HTTP 200 (credenciais válidas) e HTTP 401 (credenciais inválidas) validados manualmente via `curl`
-- Hash de senha — bcrypt confirmado no código-fonte; `passwordHash` não exposto nas respostas da API
-- Helmet — headers de segurança (CSP, HSTS, X-Frame-Options, X-Content-Type-Options) confirmados via `curl -I`
-- `x-powered-by` — header ausente confirmado via `curl -I`
-- CORS — configurável por ambiente via `CORS_ORIGIN`, fallback `http://localhost:3001`
-- Mensagens de erro — não expõem detalhes internos, stack trace, senha, hash ou token
-
 ## [0.1.0] — 2026-06-26
 
 ### Adicionado
@@ -37,14 +25,6 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - Modelo de ameaças com 16 ameaças mapeadas
 - 12 ADRs registrados (incluindo privacy by design, refresh token, auditoria)
 - README modernizado com previews ASCII, diagrama Mermaid e seção LGPD
-
-### Corrigido
-
-- `POST /auth/register` agora retorna HTTP 201 (Created) no sucesso e HTTP 409 (Conflict) para e-mail duplicado
-- `POST /auth/login` agora retorna HTTP 200 (OK) em vez de 201 (Created)
-- E-mail duplicado usa `ConflictException` em vez de `BadRequestException`
-- Swagger documenta corretamente as respostas de register (201, 409, 400) e login (200, 401, 400)
-- Mensagem de erro de login genérica ("Credenciais inválidas.") não revela se o e-mail existe
 
 ### Segurança
 - Helmet configurado globalmente (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection)

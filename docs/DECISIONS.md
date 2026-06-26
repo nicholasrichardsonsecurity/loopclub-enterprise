@@ -169,3 +169,19 @@ Este documento registra as principais decisões arquiteturais do projeto, usando
 **Consequências:**
 - Positivas: rastreabilidade completa, suporte a investigações, compliance LGPD
 - Negativas: aumento de volume de dados, necessidade de política de retenção para audit logs
+
+---
+
+## ADR-013 — JwtAuthGuard por controller com decorator @Public()
+
+**Status:** Aceito
+
+**Contexto:** Necessitávamos proteger rotas privadas com JWT sem implementar RBAC completo. As opções consideradas foram:
+1. `APP_GUARD` global com `@Public()` — protege tudo por padrão, exige decorator em cada rota pública
+2. `@UseGuards(JwtAuthGuard)` por controller — protege apenas controllers com o decorator, sem risco de esquecer @Public() em novas rotas
+
+**Decisão:** Adotar `@UseGuards(JwtAuthGuard)` por controller (opção 2). Criar decorator `@Public()` para marcar rotas de auth que não exigem token. JwtAuthGuard verifica o metadata `isPublic` via `Reflector` antes de validar o token.
+
+**Consequências:**
+- Positivas: sem risco de bloquear acidentalmente rotas novas (só são protegidas se explicitamente decoradas); guarda mais simples de entender; não precisa de `APP_GUARD` global
+- Negativas: cada módulo que usa o guard precisa importar `AuthModule` (acoplamento entre módulos); esquecer `@UseGuards()` em um novo controller deixa a rota aberta

@@ -108,17 +108,19 @@ Aplica-se a todo tratamento de dados pessoais realizado pela plataforma LoopClub
 
 ### Implementadas
 - Hash de senha com bcrypt (10 rounds)
-- JWT com segredo configurável
+- JWT com segredo configurável, JwtStrategy com validação de sub/role
+- Guardas JWT (JwtAuthGuard) nas rotas users e companies
 - Validação de entrada com `class-validator`
 - Whitelist de parâmetros via ValidationPipe
-- CORS configurável
+- Helmet para headers de segurança (CSP, HSTS, X-Frame-Options, X-Content-Type-Options)
+- CORS configurável por ambiente via `CORS_ORIGIN`
+- Header `x-powered-by` removido
+- Mensagens de erro não expõem detalhes internos
 
 ### Pendentes (necessários antes da produção)
-- Guardas JWT em todas as rotas
-- RBAC completo com decorators
+- RBAC completo com decorators (RolesGuard)
 - Rate limiting (especialmente em /auth/login)
 - HTTPS obrigatório
-- Helmet para headers de segurança
 - Sanitização de logs (remoção de dados sensíveis)
 - Validação de tenant isolation
 - Refresh token com rotação

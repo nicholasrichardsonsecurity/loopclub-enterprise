@@ -92,7 +92,7 @@ O isolamento entre empresas é feito por `companyId`. Cada registro sensível (p
 
 > **Aviso:** A validação de tenant isolation ainda não está implementada. Nenhum endpoint atual verifica se o usuário pertence à empresa que está acessando.
 
-## Arquitetura de segurança (planejada)
+## Arquitetura de segurança (atual vs. planejada)
 
 ```mermaid
 graph TB
@@ -100,8 +100,12 @@ graph TB
         REQ[Requisição HTTP]
     end
 
-    subgraph "Camada de Segurança"
-        AUTH[JWT AuthGuard]
+    subgraph "Camada de Segurança — Implementada"
+        JWT_GUARD[JwtAuthGuard<br/>valida token JWT]
+        PUBLIC[Decorator @Public()<br/>marca rotas públicas]
+    end
+
+    subgraph "Camada de Segurança — Planejada"
         RBAC[RolesGuard]
         TENANT[Tenant Validation]
         RATE[Rate Limiter]
@@ -118,8 +122,9 @@ graph TB
         DB[(PostgreSQL)]
     end
 
-    REQ --> AUTH
-    AUTH --> RBAC
+    REQ --> JWT_GUARD
+    JWT_GUARD -->|rota pública| CTRL
+    JWT_GUARD -->|rota protegida| RBAC
     RBAC --> TENANT
     TENANT --> RATE
     RATE --> CTRL
@@ -129,16 +134,16 @@ graph TB
     PRISMA --> DB
 ```
 
-### Fluxo futuro de autorização
+### Fluxo atual de autorização
 
-1. Requisição chega com JWT no header `Authorization`
-2. `AuthGuard` valida o token e extrai `userId` e `role`
-3. `RolesGuard` verifica se o perfil tem permissão para a rota
-4. Camada de serviço valida `companyId` contra o token
-5. Ação é registrada no `AuditLog` se for uma operação crítica
-6. Dados retornados são filtrados conforme o perfil (não expor dados de outros tenants)
+1. Requisição chega com (ou sem) JWT no header `Authorization`
+2. `JwtAuthGuard` verifica se a rota possui `@Public()` — se sim, libera sem validar token
+3. Se não for pública, `JwtStrategy` valida assinatura, expiração e payload (`sub`, `role`)
+4. Token inválido, ausente ou expirado → HTTP 401
+5. Token válido → `userId` e `role` disponíveis no `request.user` para o controller
+6. Rotas públicas: `GET /auth/health`, `POST /auth/register`, `POST /auth/login`
 
-> **Pendência:** As camadas JWT, RBAC e Tenant estão planejadas mas não implementadas.
+> **Implementado:** JWT AuthGuard com `@Public()`. **Pendente:** RBAC (RolesGuard), validação de tenant, rate limiting, audit log.
 
 ## Documentos de arquitetura relacionados
 
