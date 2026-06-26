@@ -5,41 +5,42 @@ Atualizado em: 26/06/2026
 ## ✅ Concluído
 
 - [x] Monorepo estruturado (apps, backend, docs, infra, packages)
-- [x] Backend NestJS inicia localmente com hot-reload
-- [x] Swagger configurado e acessível em `/docs`
+- [x] Backend NestJS compila e inicia localmente com hot-reload (`nest build` OK)
+- [x] Swagger configurado e acessível em `/docs` com Bearer Auth
 - [x] Prisma conectado ao PostgreSQL
-- [x] Schema Prisma completo (11 modelos, 4 enums)
-- [x] Migration inicial executada
-- [x] Módulo Auth: POST /auth/register (cria usuário com hash bcrypt)
-- [x] Módulo Auth: POST /auth/login (valida credenciais, retorna JWT)
-- [x] Módulo Auth: GET /auth/health (health check)
-- [x] Módulo Users: GET /users (lista usuários)
-- [x] Módulo Companies: GET /companies (lista empresas)
-- [x] Módulo Companies: POST /companies (cria empresa)
-- [x] Módulo Companies: PATCH /companies/:id/block (bloqueia empresa)
-- [x] Módulo Companies: PATCH /companies/:id/unblock (desbloqueia empresa)
+- [x] Schema Prisma completo (11 modelos, 6 enums)
+- [x] Migration inicial executada e consistente com o schema Prisma
+- [x] Módulo Auth: POST /auth/register (cria usuário com hash bcrypt, valida e-mail duplicado)
+- [x] Módulo Auth: POST /auth/login (valida credenciais, retorna JWT com sub e role)
+- [x] Módulo Auth: GET /auth/health (health check do serviço)
+- [x] Módulo Users: GET /users (lista usuários com campos selecionados)
+- [x] Módulo Companies: GET /companies (lista empresas ordenadas por criação)
+- [x] Módulo Companies: POST /companies (cria empresa com dados validados)
+- [x] Módulo Companies: PATCH /companies/:id/block (altera status para blocked)
+- [x] Módulo Companies: PATCH /companies/:id/unblock (altera status para active)
 - [x] Docker Compose com PostgreSQL 16
-- [x] Admin Web Next.js com dashboard mockado
-- [x] App Flutter com splash, login e carteira mockada
-- [x] Documentação viva criada
+- [x] Admin Web Next.js com dashboard mockado (layout, cards, tabela)
+- [x] App Flutter com splash, login e carteira mockada (3 telas)
+- [x] Documentação viva completa (15 arquivos: README, CHANGELOG, CONTRIBUTING, CLAUDE.md + 11 docs)
 
 ## 🔄 Em Desenvolvimento
 
-- [ ] Validar registro e login com testes manuais/automáticos
-- [ ] Proteger rotas com JWT Guards
-- [ ] Implementar RolesGuard (RBAC)
-- [ ] Seed inicial (Admin Master)
-- [ ] Integrar admin web com API real
-- [ ] Integrar app Flutter com API real
+- [ ] Validar registro e login com testes manuais ou automatizados
+- [ ] Proteger rotas com JWT Guards (AuthGuard)
+- [ ] Implementar RolesGuard com decorator @Roles (RBAC)
+- [ ] Seed inicial (Admin Master padrão)
+- [ ] Integrar admin web com API real (atualmente dados mockados)
+- [ ] Integrar app Flutter com API real (atualmente dados mockados)
+- [ ] Testes automatizados (0 arquivos .spec.ts encontrados)
 
 ## 📋 Próximos Passos (Sprint 02)
 
-- [ ] Guardas JWT em todas as rotas
+- [ ] Guardas JWT em todas as rotas existentes
 - [ ] Refresh token
-- [ ] Vincular CompanyUser no registro
-- [ ] Testes de integração para auth
-- [ ] Validação de multi-tenancy
-- [ ] CRUD completo de empresas
+- [ ] Vincular CompanyUser no registro (criar vínculo empresa-usuário)
+- [ ] Testes de integração para módulo Auth
+- [ ] Validação de multi-tenancy nas consultas
+- [ ] CRUD completo de empresas (update, delete, busca por ID)
 
 ## 🔮 Backlog Futuro
 

@@ -10,6 +10,17 @@
 
 O schema completo está em [`backend/prisma/schema.prisma`](../backend/prisma/schema.prisma).
 
+## Enums
+
+| Enum | Valores |
+|------|---------|
+| UserRole | admin, company_owner, employee, client |
+| UserStatus | active, blocked, deleted |
+| CompanyStatus | active, blocked, trial, canceled |
+| CompanyUserRole | owner, manager, employee |
+| LoyaltyProgramType | buy_x_get_y, progressive |
+| TransactionType | qr_point, manual_point, remove_point, reset, reward_redeemed |
+
 ## Entidades
 
 ### User

@@ -19,28 +19,29 @@ Criar a base técnica e executável do LoopClub Enterprise, com monorepo organiz
 ## Tarefas executadas
 
 1. Criação da estrutura de monorepo (apps, backend, docs, docker, infra, packages)
-2. Configuração do backend NestJS com TypeScript
-3. Schema Prisma (11 modelos, 4 enums)
-4. Migration inicial do banco
+2. Configuração do backend NestJS com TypeScript (compilação validada: `nest build` OK)
+3. Schema Prisma (11 modelos, 6 enums)
+4. Migration inicial do banco executada e consistente com schema
 5. Módulo Auth (register, login, JWT, health)
 6. Módulo Companies (list, create, block, unblock)
 7. Módulo Users (list)
 8. Swagger configurado com Bearer Auth
 9. Docker Compose para PostgreSQL 16
-10. Admin Web Next.js com layout e dashboard
-11. App Flutter com splash, login e carteira mockada
-12. Documentação completa (15 arquivos)
+10. Admin Web Next.js com layout e dashboard (dados mockados)
+11. App Flutter com splash, login e carteira mockada (3 telas)
+12. Documentação viva completa (15 arquivos)
+13. Arquivos de documentação antigos e duplicados removidos (`docs/api/`, `docs/architecture/`, `docs/database/`)
 
 ## Critérios de aceite
 
-| Critério | Status |
-|----------|--------|
-| `docker compose up -d postgres` sobe o banco | ✅ |
-| Backend instala dependências e inicia | ✅ |
-| Swagger abre em `/docs` | ✅ |
-| Prisma gera client e executa migration | ✅ |
-| Admin Web abre em `localhost:3001` | ✅ |
-| Flutter executa splash/login/carteira | ✅ |
+| Critério | Status | Validação |
+|----------|--------|-----------|
+| `docker compose up -d postgres` sobe o banco | ✅ | Docker Compose configurado |
+| Backend instala dependências e inicia | ✅ | `nest build` compila sem erros |
+| Swagger abre em `/docs` | ✅ | Configurado em `main.ts` |
+| Prisma gera client e executa migration | ✅ | Migration `init` executada |
+| Admin Web abre em `localhost:3001` | ✅ | Next.js configurado na porta 3001 |
+| Flutter executa splash/login/carteira | ✅ | 3 telas implementadas |
 
 ## Comandos executados
 
@@ -50,7 +51,7 @@ cd backend
 npm install
 npx prisma generate
 npx prisma migrate dev --name init
-npm run start:dev
+npm run start:dev     # ou nest build para validar compilação
 
 # Admin Web
 cd apps/admin-web
@@ -79,22 +80,22 @@ docker compose up -d postgres
 | PATCH | `/companies/:id/block` | Bloquear empresa | Não |
 | PATCH | `/companies/:id/unblock` | Desbloquear empresa | Não |
 
-> **Nota:** Nenhuma rota possui guarda JWT ainda. A proteção será implementada na Sprint 02.
+> **Nota:** Nenhuma rota possui guarda JWT. A proteção será implementada na Sprint 02.
 
 ## Pendências e problemas conhecidos
 
-- Rotas não protegidas por JWT (qualquer requisição anônima funciona)
-- Sem validação de perfil (RBAC não implementado)
-- Admin Web usa dados mockados (sem integração com API)
-- App Flutter usa dados mockados (sem integração com API)
-- Sem testes automatizados
-- CompanyUser não é criado automaticamente no registro
-- Sem seed de dados iniciais
-- Endpoints de company não validam se o usuário tem permissão
+- **Rotas não protegidas:** Nenhum `@UseGuards()`, `AuthGuard` ou `RolesGuard` implementado
+- **Zero testes:** Nenhum arquivo `.spec.ts` no projeto
+- **Admin Web usa dados mockados** (sem integração com API real)
+- **App Flutter usa dados mockados** (sem integração com API real)
+- **CompanyUser não é criado no registro** — vínculo empresa-usuário não existe
+- **Sem seed de dados iniciais** — Admin Master precisa ser criado manualmente
+- **Endpoints de company não validam permissão** — qualquer um pode criar/alterar empresa
+- **Sem refresh token** — apenas access token com expiração de 1 dia
 
 ## Próximos passos (Sprint 02)
 
-1. Implementar JWT Guards em todas as rotas
+1. Implementar JWT Guards em todas as rotas existentes
 2. RolesGuard com decorator @Roles
 3. Refresh token
 4. Vincular CompanyUser no registro (usuário como COMPANY_OWNER)
