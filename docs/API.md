@@ -35,7 +35,7 @@ Authorization: Bearer <token>
 
 **Roles válidas:** `admin`, `company_owner`, `employee`, `client`
 
-**Resposta (201):**
+**Resposta (201 - sucesso):**
 ```json
 {
   "user": {
@@ -45,6 +45,24 @@ Authorization: Bearer <token>
     "role": "client",
     "status": "active"
   }
+}
+```
+
+**Resposta (409 - e-mail duplicado):**
+```json
+{
+  "message": "E-mail já cadastrado.",
+  "error": "Conflict",
+  "statusCode": 409
+}
+```
+
+**Resposta (400 - dados inválidos):**
+```json
+{
+  "message": ["name should not be empty", "email must be an email"],
+  "error": "Bad Request",
+  "statusCode": 400
 }
 ```
 
@@ -57,7 +75,7 @@ Authorization: Bearer <token>
 }
 ```
 
-**Resposta (201):**
+**Resposta (200 - sucesso):**
 ```json
 {
   "accessToken": "jwt_token_aqui",
@@ -68,6 +86,24 @@ Authorization: Bearer <token>
     "role": "client",
     "status": "active"
   }
+}
+```
+
+**Resposta (401 - credenciais inválidas):**
+```json
+{
+  "message": "Credenciais inválidas.",
+  "error": "Unauthorized",
+  "statusCode": 401
+}
+```
+
+**Resposta (400 - dados inválidos):**
+```json
+{
+  "message": ["email must be an email", "password must be longer than or equal to 6 characters"],
+  "error": "Bad Request",
+  "statusCode": 400
 }
 ```
 

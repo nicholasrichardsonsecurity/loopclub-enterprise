@@ -2,17 +2,10 @@
 
 > Plataforma SaaS multiempresa de fidelização e retenção de clientes.
 
-<p>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://via.placeholder.com/800x40/1a1a2e/ffffff?text=">
-    <img alt="separator" src="https://via.placeholder.com/800x40/1a1a2e/ffffff?text=">
-  </picture>
-</p>
-
 ![Status](https://img.shields.io/badge/status-em_desenvolvimento-FF6B35?style=flat-square)
 ![Sprint](https://img.shields.io/badge/sprint-01-blue?style=flat-square)
 ![Backend](https://img.shields.io/badge/backend-NestJS-e0234e?style=flat-square)
-![Frontend](https://img.shields.io/badge/mobile-Flutter-02569B?style=flat-square)
+![Mobile](https://img.shields.io/badge/mobile-Flutter-02569B?style=flat-square)
 ![Admin](https://img.shields.io/badge/admin-Next.js-000000?style=flat-square)
 ![Banco](https://img.shields.io/badge/database-PostgreSQL-4169E1?style=flat-square)
 ![ORM](https://img.shields.io/badge/orm-Prisma-2D3748?style=flat-square)

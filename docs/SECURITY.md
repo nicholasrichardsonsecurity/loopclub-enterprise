@@ -7,15 +7,22 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
 ## Implementado
 
 ### Autenticação e senhas
-- **Hash de senhas:** bcrypt com 10 rounds
+- **Hash de senhas:** bcrypt com 10 rounds — `validado manualmente` (confirmado no código-fonte `auth.service.ts`)
 - **JWT:** tokens gerados com segredo configurável via `.env`, expiração de 1 dia
 - **Validação de entrada:** DTOs com `class-validator` garantem tipos e formatos
 - **Whitelist de dados:** `ValidationPipe` com `whitelist: true` rejeita campos não esperados
+- **`passwordHash` não exposto:** `select` limita retorno a 5 campos (id, name, email, role, status) — `validado manualmente` (resposta do register não contém hash)
+
+### Headers de segurança
+- **Helmet:** configurado globalmente via `app.use(helmet())` — CSP, HSTS, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection ativos — `validado manualmente` (headers confirmados via `curl -I`)
+- **x-powered-by:** removido via `app.getHttpAdapter().getInstance().disable('x-powered-by')` — `validado manualmente` (header ausente via `curl -I`)
+- **CORS:** restrito por ambiente — lê `CORS_ORIGIN` do `.env` (lista de origens separadas por vírgula), fallback para `http://localhost:3001` — `validado manualmente` (header `Access-Control-Allow-Origin` confirmado via `curl`)
+
+### Tratamento de erros
+- **Mensagens sem detalhes internos:** erros de autenticação não expõem stack trace, detalhes do Prisma, senha, hash ou token — `validado manualmente` (respostas 400, 401, 409 testadas via `curl`)
 
 ### Infraestrutura de desenvolvimento
-- **CORS:** habilitado para desenvolvimento
 - **Segredos:** `.env` bloqueado pelo `.gitignore`; `.env.example` com valores fictícios
-- **Senhas:** hash bcrypt com 10 rounds
 
 ### Banco e ORM
 - **Prevenção SQL injection:** Prisma ORM usa queries parametrizadas
@@ -36,14 +43,15 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
 - [ ] Rate limiting global para abuso de endpoints abertos
 - [ ] HTTPS obrigatório em produção
 
-### Logs e monitoramento
-- [ ] Sanitização de logs (não expor senhas, tokens, dados pessoais)
-- [ ] Interceptor NestJS para sanitização automática
-- [ ] Auditoria de ações sensíveis (implementar registro em AuditLog)
-
 ### Headers e proteção web
-- [ ] Helmet para headers de segurança (CSP, X-Frame-Options, etc.)
-- [ ] CORS restritivo em produção (apenas origens autorizadas)
+- [x] Helmet para headers de segurança (CSP, HSTS, X-Frame-Options, X-Content-Type-Options) — `implementado e validado`
+- [x] CORS configurável por ambiente via `CORS_ORIGIN` (lista de origens) — `implementado e validado`
+- [x] `x-powered-by` removido para evitar fingerprinting — `implementado e validado`
+
+### Logs e monitoramento
+- [ ] Interceptor NestJS para sanitização automática de logs
+- [ ] Auditoria de ações sensíveis (implementar registro em AuditLog)
+- **Observação:** senhas e tokens não devem aparecer em logs — validado manualmente (nenhuma rota de autenticação loga body da requisição)
 
 ### QR Code e tokens
 - [ ] Validação de token QR Code com expiração curta (30s)
