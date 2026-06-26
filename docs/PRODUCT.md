@@ -52,6 +52,42 @@ O LoopClub é uma plataforma SaaS multiempresa de fidelização e retenção de 
 - Reset manual de progresso
 - Histórico e auditoria de transações
 
+### Dashboard Admin Master (planejado)
+- Cards de métricas (empresas ativas, bloqueadas, inadimplentes)
+- Gráficos de evolução (MRR previsto × recebido)
+- Gestão de NFS-e (emissão, status, cancelamento, substituição)
+- Solicitações LGPD e incidentes de segurança
+- Pagamentos e assinaturas (visão consolidada)
+
+### Pagamentos (planejado)
+- Pix, cartão e recorrência via gateway
+- Webhooks assinados com verificação de integridade
+- Idempotência em operações financeiras
+- Liberação automática após confirmação
+- Estorno, chargeback e falha de pagamento
+
+### NFS-e (planejado)
+- Emissão automática após pagamento confirmado
+- Envio ao cliente (e-mail / download)
+- Status, reprocessamento, cancelamento e substituição
+- Integração desacoplada com provedor fiscal
+
+### Push Notifications (planejado)
+- Global, por perfil e por empresa
+- Operacional (confirmação, lembrete, alerta)
+- Promocional (nova recompensa, oferta)
+- Agendamento de disparo
+- Preferências e opt-out por usuário
+- Histórico e auditoria de disparos
+
+### Relatórios contábeis (planejado)
+- Faturamento por competência
+- Notas emitidas e canceladas
+- Pagamentos, estornos e inadimplência
+- Exportação CSV / XLSX
+- Conciliação financeira
+- Resumo mensal para contabilidade
+
 ### Visual e relatórios
 - Dashboard da empresa
 - Dashboard do Admin Master
@@ -62,3 +98,9 @@ O LoopClub é uma plataforma SaaS multiempresa de fidelização e retenção de 
 - App único: o cliente não precisa instalar um app por loja
 - Multi-tenant nativo: dados isolados por `companyId`
 - Flexível para pequenos negócios: planos simples e gestão manual
+
+## Observações fiscais e tributárias
+
+- **NFS-e é o documento fiscal previsto.** O LoopClub emite Nota Fiscal de Serviço (NFS-e) para as assinaturas e serviços prestados. A implementação está sujeita a validação contábil e às regras municipais de cada prestador.
+- **NFCom modelo 62 não se aplica.** A Nota Fiscal de Comunicação (NFCom, modelo 62) é voltada exclusivamente a serviços de telecomunicações. Não deve ser confundida com NFS-e. O LoopClub não emite NFCom.
+- **DAS não é gerado automaticamente.** O Documento de Arrecadação do Simples Nacional (DAS) é de responsabilidade do contribuinte. O sistema não deve prometer geração automática do DAS sem validação contábil e tributária.

@@ -110,6 +110,7 @@ Aplica-se a todo tratamento de dados pessoais realizado pela plataforma LoopClub
 - Hash de senha com bcrypt (10 rounds)
 - JWT com segredo configurável, JwtStrategy com validação de sub/role
 - Guardas JWT (JwtAuthGuard) nas rotas users e companies
+- RBAC (RolesGuard) com decorator @Roles — perfis admin, company_owner, employee, client
 - Validação de entrada com `class-validator`
 - Whitelist de parâmetros via ValidationPipe
 - Helmet para headers de segurança (CSP, HSTS, X-Frame-Options, X-Content-Type-Options)
@@ -118,7 +119,6 @@ Aplica-se a todo tratamento de dados pessoais realizado pela plataforma LoopClub
 - Mensagens de erro não expõem detalhes internos
 
 ### Pendentes (necessários antes da produção)
-- RBAC completo com decorators (RolesGuard)
 - Rate limiting (especialmente em /auth/login)
 - HTTPS obrigatório
 - Sanitização de logs (remoção de dados sensíveis)
@@ -126,6 +126,24 @@ Aplica-se a todo tratamento de dados pessoais realizado pela plataforma LoopClub
 - Refresh token com rotação
 - Registro de consentimento
 - Política de senha forte
+
+### Planejado para versões futuras
+
+#### Pagamentos
+- Dados financeiros (cartão, Pix, endereço de cobrança) exigem proteção adicional e base legal específica (art. 7º, V — execução de contrato)
+- Histórico de pagamentos armazena dados de transação e deve ter retenção definida (5 anos para fins fiscais)
+- Webhooks de pagamento podem conter dados do pagador — não registrar payload bruto em logs
+
+#### NFS-e
+- NFS-e contém dados do tomador (nome, CPF/CNPJ, endereço) — incluir no mapa de dados quando implementado
+- Prazo de retenção de 5 anos após emissão (legislação fiscal)
+- Cancelamento e substituição devem manter trilha de auditoria
+
+#### Push notifications
+- Push promocional exige consentimento explícito do titular (art. 7º, I)
+- Preferências de notificação e opt-out devem ser armazenados e respeitados
+- Conteúdo de push não deve conter dados sensíveis
+- Histórico de disparos deve ser auditável com data, conteúdo e destinatário
 
 ## Direitos dos titulares
 

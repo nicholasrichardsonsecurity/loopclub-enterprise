@@ -18,8 +18,19 @@ Authorization: Bearer <token>
 | Rota protegida sem token | HTTP 401 Unauthorized — `{ "message": "Token inválido ou ausente." }` |
 | Rota protegida com token inválido | HTTP 401 Unauthorized |
 | Rota protegida com token expirado | ⚠️ Pendente de validação |
-| Rota protegida com token válido | Acesso permitido conforme a rota |
+| Rota protegida com token válido mas perfil sem permissão | HTTP 403 Forbidden — `{ "message": "Acesso negado." }` |
+| Rota protegida com token válido e perfil autorizado | Acesso permitido conforme a rota |
 | Rota pública sem token | Acesso permitido |
+
+### Matriz de permissões (RBAC)
+
+| Rota | admin | company_owner | employee | client |
+|------|-------|---------------|----------|--------|
+| `GET /users` | ✅ | ❌ | ❌ | ❌ |
+| `GET /companies` | ✅ | ✅ | ❌ | ❌ |
+| `POST /companies` | ✅ | ❌ | ❌ | ❌ |
+| `PATCH /companies/:id/block` | ✅ | ❌ | ❌ | ❌ |
+| `PATCH /companies/:id/unblock` | ✅ | ❌ | ❌ | ❌ |
 
 ### Rotas públicas
 
@@ -198,7 +209,7 @@ Authorization: Bearer <token>
 - **Senhas:** Hash bcrypt com 10 rounds
 - **Rotas públicas:** `GET /auth/health`, `POST /auth/register`, `POST /auth/login` — não exigem autenticação — `validado manualmente`
 - **Rotas protegidas (JWT Bearer):** `GET /users`, `GET /companies`, `POST /companies`, `PATCH /companies/:id/block`, `PATCH /companies/:id/unblock` — exigem token JWT válido no header `Authorization: Bearer <token>` — `validado manualmente`
-- **RolesGuard (RBAC) não implementado** — qualquer token JWT válido acessa todas as rotas protegidas (a ser corrigido na Sprint 02)
+- **RolesGuard (RBAC) implementado** — cada rota protegida exige perfil específico. Ver matriz de permissões acima. Perfil sem permissão recebe HTTP 403
 - **Risco de enumeração:** `/auth/register` retorna erro específico se e-mail já existe, permitindo enumeração de usuários
 - **Risco de brute force:** `/auth/login` não possui rate limiting
 - **Risco de IDOR:** rotas com parâmetros de ID não validam permissão do usuário

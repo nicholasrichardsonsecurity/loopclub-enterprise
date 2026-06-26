@@ -65,11 +65,51 @@ Roteiro de desenvolvimento do LoopClub Enterprise v1.0.
 - [ ] Personalização visual (logo, cores por empresa)
 - [ ] Histórico e auditoria completo
 
+## Sprint 07 — Admin Master Dashboard 🔮
+
+- [ ] Dashboard Admin Master com cards de métricas (empresas ativas, bloqueadas, inadimplentes)
+- [ ] Gráficos de evolução (MRR previsto × recebido, crescimento de empresas)
+- [ ] Gestão de NFS-e (emissão, status, cancelamento, substituição)
+- [ ] Solicitações LGPD (painel de DataSubjectRequest)
+- [ ] Incidentes de segurança (painel de SecurityIncident)
+- [ ] Pagamentos e assinaturas (visão consolidada)
+
+## Sprint 08 — Pagamentos e NFS-e 🔮
+
+- [ ] Integração com gateway de pagamento (Pix, cartão, recorrência)
+- [ ] Webhooks assinados para confirmação de pagamento
+- [ ] Idempotência em operações financeiras
+- [ ] Liberação automática de assinatura após confirmação
+- [ ] Fluxo de estorno e chargeback
+- [ ] Tratamento de falha de pagamento (retentativa, notificação, bloqueio)
+- [ ] Emissão de NFS-e após pagamento confirmado
+- [ ] Envio de NFS-e ao cliente (e-mail / download)
+- [ ] Status e reprocessamento de NFS-e
+- [ ] Cancelamento e substituição de NFS-e
+- [ ] Integração desacoplada com provedor fiscal (troca de provider sem impacto no core)
+
+## Sprint 09 — Push Notifications 🔮
+
+- [ ] Infraestrutura de push (global, por perfil, por empresa)
+- [ ] Push operacional (confirmação, lembrete, alerta)
+- [ ] Push promocional (nova recompensa, oferta)
+- [ ] Agendamento de disparo
+- [ ] Histórico de notificações enviadas
+- [ ] Preferências e opt-out por usuário
+- [ ] Auditoria de disparos
+
+## Sprint 10 — Relatórios Contábeis 🔮
+
+- [ ] Relatório de faturamento por competência
+- [ ] Relatório de notas emitidas e canceladas
+- [ ] Relatório de pagamentos, estornos e inadimplência
+- [ ] Exportação CSV / XLSX
+- [ ] Conciliação financeira
+- [ ] Resumo mensal para contabilidade
+
 ## Futuro (pós v1.0)
 
-- [ ] Planos com pagamento automático (gateway)
 - [ ] App iOS
-- [ ] Notificações push
 - [ ] Chat/suporte in-app
 - [ ] Marketplace de recompensas
 - [ ] API pública para integração de terceiros

@@ -34,10 +34,8 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
 
 ### Controle de acesso
 - [x] Guardas JWT em users e companies (JwtAuthGuard) — `implementado e validado`
-- [ ] RolesGuard com decorator @Roles (RBAC) — pendente
-- [ ] RBAC completo com decorators de perfil (RolesGuard)
+- [x] RolesGuard com decorator @Roles (RBAC) — `implementado e validado`. Perfis: admin, company_owner, employee, client. Princípio do menor privilégio aplicado: cada endpoint exige o perfil mínimo necessário.
 - [ ] Validação de tenant isolation (companyId em todas as consultas)
-- [ ] Princípio do menor privilégio em todas as permissões
 - [ ] Proteção contra IDOR em rotas com parâmetros de ID
 
 ### Sessão e tokens
@@ -57,9 +55,25 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
 - **Observação:** senhas e tokens não devem aparecer em logs — validado manualmente (nenhuma rota de autenticação loga body da requisição). Tokens JWT no header `Authorization` não são registrados pelo NestJS em logs padrão.
 
 ### Controle de acesso — pendências
-- **RBAC (RolesGuard):** pendente — qualquer token JWT válido acessa todas as rotas protegidas
+- ~~**RBAC (RolesGuard):** pendente — qualquer token JWT válido acessa todas as rotas protegidas~~ (corrigido — RolesGuard implementado com matriz de permissões)
 - **Isolamento multiempresa:** pendente — consultas não filtram por `companyId`
 - **Refresh token e revogação de sessão:** pendentes — token JWT tem expiração fixa de 1 dia sem revogação
+
+### Pagamentos e webhooks (planejado)
+- [ ] Webhooks assinados com verificação de assinatura HMAC ou equivalente
+- [ ] Idempotência em requisições financeiras (evitar duplicidade de cobrança)
+- [ ] Tratamento seguro de chargeback e estorno com registro de auditoria
+- [ ] Falha de pagamento: notificação segura sem expor dados do meio de pagamento
+
+### Push notifications (planejado)
+- [ ] Opt-out e consentimento explícito para push promocional (LGPD art. 7º)
+- [ ] Auditoria de disparos (quem autorizou, quando, para quem, qual conteúdo)
+- [ ] Preferências de notificação armazenadas por usuário
+- [ ] Conteúdo de push sem dados sensíveis (não incluir tokens, valores ou dados pessoais no corpo)
+
+### NFS-e (planejado)
+- [ ] Provedor fiscal substituível sem exposição de credenciais no core
+- [ ] Chaves de API do provedor armazenadas em variável de ambiente ou secrets manager
 
 ### QR Code e tokens
 - [ ] Validação de token QR Code com expiração curta (30s)

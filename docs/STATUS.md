@@ -33,6 +33,7 @@ Atualizado em: 26/06/2026
 - [x] **x-powered-by removido** — `validado manualmente`. Header ausente no response.
 - [x] **Swagger /docs** — `validado manualmente`. Retorna HTTP 200. Decorators Swagger documentam register (201, 409, 400) e login (200, 401, 400). Rotas protegidas (users, companies) documentadas com `@ApiBearerAuth()` e `@ApiUnauthorizedResponse()`. Swagger Bearer Auth validado.
 - [x] **JWT Guard — rotas protegidas** — `implementado` e `validado manualmente`. JwtStrategy com validação de sub/role e expiração. JwtAuthGuard com suporte a `@Public()`. UsersController e CompaniesController protegidos. Rotas sem token retornam 401; token inválido retorna 401; token válido retorna 200.
+- [x] **RolesGuard (RBAC)** — `implementado` e `validado manualmente`. Decorator `@Roles()` lê perfil do JWT. Users: só admin. Companies GET: admin + company_owner. Companies POST/PATCH: só admin. Retorna 403 para perfil sem permissão.
 - [x] **Rotas públicas permanecem públicas** — `validado manualmente`. `GET /auth/health`, `POST /auth/register`, `POST /auth/login` continuam acessíveis sem token.
 
 ## ✅ Implementado (não validado)
@@ -110,7 +111,7 @@ Atualizado em: 26/06/2026
 ### Próximos itens a implementar (Sprint 02)
 
 - [x] Guardas JWT (JwtAuthGuard) em users e companies — `implementado e validado`
-- [ ] RolesGuard com decorator @Roles (RBAC) — pendente
+- [x] RolesGuard com decorator @Roles (RBAC) — `implementado e validado`
 - [ ] Validação de token expirado — pendente de teste específico
 - [ ] Refresh token com rotação e revogação
 - [ ] Vincular CompanyUser no registro (criar vínculo empresa-usuário)
@@ -139,7 +140,11 @@ Atualizado em: 26/06/2026
 - [ ] Dashboard da empresa
 - [ ] Dashboard do Admin
 - [ ] Personalização visual por empresa
-- [ ] Pagamento automático (gateway)
+- [ ] Dashboard Admin Master (cards, gráficos, MRR, NFS-e, LGPD, incidentes)
+- [ ] Pagamento automático (Pix, cartão, recorrência, webhooks, idempotência)
+- [ ] NFS-e (emissão, status, cancelamento, substituição, provedor substituível)
+- [ ] Push notifications (global, por perfil/empresa, agendamento, opt-out, auditoria)
+- [ ] Relatórios contábeis (faturamento, notas, pagamentos, inadimplência, CSV/XLSX)
 - [ ] Deploy em produção
 - [ ] Testes automatizados (unitários, integração, e2e)
 - [ ] CI/CD com GitHub Actions

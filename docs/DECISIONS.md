@@ -185,3 +185,49 @@ Este documento registra as principais decisões arquiteturais do projeto, usando
 **Consequências:**
 - Positivas: sem risco de bloquear acidentalmente rotas novas (só são protegidas se explicitamente decoradas); guarda mais simples de entender; não precisa de `APP_GUARD` global
 - Negativas: cada módulo que usa o guard precisa importar `AuthModule` (acoplamento entre módulos); esquecer `@UseGuards()` em um novo controller deixa a rota aberta
+
+---
+
+## ADR-014 — Pagamento desacoplado com provedor substituível
+
+**Status:** Proposto (planejado)
+
+**Contexto:** O LoopClub precisará processar pagamentos recorrentes (Pix, cartão) e emitir NFS-e. Gateways de pagamento e provedores fiscais mudam com frequência por questões de custo, confiabilidade ou compliance.
+
+**Decisão:** No módulo Payments, o gateway de pagamento será uma interface (`PaymentGateway`) com implementações concretas por provedor. O módulo Nfse seguirá o mesmo padrão (`FiscalProvider`). O core do sistema não deve conhecer detalhes do provedor. Webhooks de callback devem ser assinados com chave secreta e validados antes do processamento.
+
+**Consequências:**
+- Positivas: troca de provedor sem alterar regras de negócio; testável com mocks; isolamento de responsabilidade
+- Negativas: complexidade inicial maior (interface, adaptador, factory); cada novo provedor exige implementação separada
+
+---
+
+## ADR-015 — Push notifications auditáveis com opt-out
+
+**Status:** Proposto (planejado)
+
+**Contexto:** O sistema precisará enviar notificações push operacionais e promocionais. Push promocional exige consentimento LGPD. Disparos precisam ser auditáveis para compliance e investigação de incidentes.
+
+**Decisão:** Criar um módulo PushNotifications com:
+1. Armazenamento de preferências por usuário (opt-out explícito por categoria)
+2. Consentimento separado para push promocional (base legal: art. 7º, I da LGPD)
+3. Registro de auditoria para cada disparo (data, conteúdo, destinatário, canal, autorizador)
+4. Agendamento com fila (para evitar sobrecarga e permitir reprocessamento)
+
+**Consequências:**
+- Positivas: compliance LGPD para push promocional; rastreabilidade completa; usuário controla o que recebe
+- Negativas: aumento de armazenamento (histórico de disparos); necessidade de fila e worker para agendamento; custo operacional de notificações
+
+---
+
+## ADR-016 — RolesGuard com decorator @Roles para RBAC
+
+**Status:** Aceito
+
+**Contexto:** Após implementar JwtAuthGuard, qualquer token JWT válido acessava todas as rotas protegidas. Era necessário restringir o acesso por perfil (admin, company_owner, employee, client) sem implementar tenant isolation.
+
+**Decisão:** Criar RolesGuard que lê os perfis permitidos via decorator `@Roles()` e compara com `request.user.role` (extraído do JWT pelo JwtStrategy). O perfil nunca é aceito de parâmetros externos — vem exclusivamente do token assinado. A combinação `@UseGuards(JwtAuthGuard, RolesGuard)` por controller garante que o token é validado antes do perfil.
+
+**Consequências:**
+- Positivas: perfil seguro (vem do JWT, não do frontend); 403 claro para perfil sem acesso; decorator simples de aplicar em novas rotas; princípio do menor privilégio aplicado
+- Negativas: ainda não há validação de companyId (qualquer admin vê dados de todas as empresas); precisa lembrar de adicionar `@Roles()` em cada novo endpoint protegido

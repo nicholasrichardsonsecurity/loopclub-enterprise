@@ -18,7 +18,11 @@ graph TB
         C[Auth Module]
         D[Companies Module]
         E[Users Module]
-        F[Fidelity Module<br/>planejado]
+        F[Fidelity Module]
+        G[Payments Module<br/>planejado]
+        H[Nfse Module<br/>planejado]
+        I[Push Module<br/>planejado]
+        J[Reports Module<br/>planejado]
     end
 
     subgraph "Banco (PostgreSQL)"
@@ -59,7 +63,7 @@ Estrutura modular com separação clara de responsabilidades:
 - **DTOs:** validam e tipam dados de entrada
 - **PrismaService:** camada única de acesso ao banco
 
-### Módulos atuais
+### Módulos atuais e planejados
 
 | Módulo | Status | Descrição |
 |--------|--------|-----------|
@@ -69,6 +73,10 @@ Estrutura modular com separação clara de responsabilidades:
 | Fidelity | Planejado | Programas de fidelidade |
 | Plans | Planejado | Gestão de planos |
 | Dashboard | Planejado | Relatórios e métricas |
+| Payments | Planejado | Pix, cartão, recorrência, webhooks, estorno |
+| Nfse | Planejado | Emissão, status, cancelamento, provedor fiscal |
+| PushNotifications | Planejado | Push global, por perfil/empresa, agendamento, opt-out |
+| Reports | Planejado | Relatórios contábeis, exportação CSV/XLSX |
 
 ## Frontend Mobile (Flutter)
 
@@ -105,8 +113,11 @@ graph TB
         PUBLIC[Decorator @Public()<br/>marca rotas públicas]
     end
 
+    subgraph "Camada de Segurança — Implementada"
+        RBAC[RolesGuard<br/>valida perfil do usuário]
+    end
+
     subgraph "Camada de Segurança — Planejada"
-        RBAC[RolesGuard]
         TENANT[Tenant Validation]
         RATE[Rate Limiter]
     end
@@ -125,9 +136,9 @@ graph TB
     REQ --> JWT_GUARD
     JWT_GUARD -->|rota pública| CTRL
     JWT_GUARD -->|rota protegida| RBAC
-    RBAC --> TENANT
-    TENANT --> RATE
-    RATE --> CTRL
+    RBAC -->|autorizado| CTRL
+    RBAC -->|sem permissão| FIM[HTTP 403]
+    CTRL --> SRV
     CTRL --> SRV
     SRV --> AUDIT
     SRV --> PRISMA
@@ -143,7 +154,7 @@ graph TB
 5. Token válido → `userId` e `role` disponíveis no `request.user` para o controller
 6. Rotas públicas: `GET /auth/health`, `POST /auth/register`, `POST /auth/login`
 
-> **Implementado:** JWT AuthGuard com `@Public()`. **Pendente:** RBAC (RolesGuard), validação de tenant, rate limiting, audit log.
+> **Implementado:** JWT AuthGuard com `@Public()`, RolesGuard com `@Roles()` (admin, company_owner, employee, client). **Pendente:** validação de tenant, rate limiting, audit log. **Planejado:** módulo Payments (gateway desacoplado), Nfse (provedor fiscal substituível), PushNotifications (auditável), Reports (exportação contábil).
 
 ## Documentos de arquitetura relacionados
 

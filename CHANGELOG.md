@@ -4,6 +4,32 @@ Todas as mudanças notáveis neste projeto serão documentadas aqui.
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este projeto segue [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Adicionado
+
+- JwtStrategy com validação de assinatura, expiração e payload (sub, role)
+- JwtAuthGuard com suporte a `@Public()` para rotas públicas
+- Decorator `@Public()` para marcar rotas que não exigem autenticação
+- Proteção JWT Bearer nas rotas `GET /users`, `GET /companies`, `POST /companies`, `PATCH /companies/:id/block`, `PATCH /companies/:id/unblock`
+- Swagger atualizado com `@ApiBearerAuth()` e `@ApiUnauthorizedResponse()` nas rotas protegidas
+- RolesGuard com `@Roles()` para controle de acesso baseado em perfil (admin, company_owner, employee, client)
+- Matriz de permissões: GET /users (admin), GET /companies (admin, company_owner), POST/PATCH companies (admin)
+
+### Validado
+
+- `POST /auth/register` — retorno HTTP 201 (cadastro novo) e HTTP 409 (e-mail duplicado) validados manualmente via `curl`
+- `POST /auth/login` — retorno HTTP 200 (credenciais válidas) e HTTP 401 (credenciais inválidas) validados manualmente via `curl`
+- Hash de senha — bcrypt confirmado no código-fonte; `passwordHash` não exposto nas respostas da API
+- Helmet — headers de segurança (CSP, HSTS, X-Frame-Options, X-Content-Type-Options) confirmados via `curl -I`
+- `x-powered-by` — header ausente confirmado via `curl -I`
+- CORS — configurável por ambiente via `CORS_ORIGIN`, fallback `http://localhost:3001`
+- Mensagens de erro — não expõem detalhes internos, stack trace, senha, hash ou token
+- JwtAuthGuard — rotas sem token retornam 401, com token inválido retornam 401, com token válido retornam 200
+- Rotas públicas — `GET /auth/health`, `POST /auth/register`, `POST /auth/login` permanecem acessíveis sem token
+- Swagger Bearer Auth — documentação e autenticação via Swagger UI validada
+- RolesGuard — admin acessa todas as rotas; company_owner acessa apenas GET /companies; employee e client recebem 403
+
 ## [0.1.0] — 2026-06-26
 
 ### Adicionado

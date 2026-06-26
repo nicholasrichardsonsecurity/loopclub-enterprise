@@ -41,6 +41,7 @@ Criar a base técnica e executável do LoopClub Enterprise, com monorepo organiz
 21. Correção de códigos HTTP do Auth: register retorna 201/409/400, login retorna 200/401
 22. Decorators Swagger do Auth documentam respostas corretas (register: 201, 409, 400; login: 200, 401, 400)
 23. JwtStrategy + JwtAuthGuard implementados: users e companies protegidos com JWT Bearer; auth público via `@Public()`
+24. RolesGuard + @Roles implementados: matriz de permissões (admin, company_owner, employee, client) aplicada a users e companies
 
 ## Critérios de aceite
 
@@ -51,6 +52,7 @@ Criar a base técnica e executável do LoopClub Enterprise, com monorepo organiz
 | Swagger abre em `/docs` | ✅ Validado | `curl http://localhost:3000/docs` retorna HTTP 200. Decorators Swagger documentam register (201, 409, 400) e login (200, 401, 400) |
 | Auth endpoints retornam códigos HTTP corretos | ✅ Validado | register: 201, 409, 400; login: 200, 401 — todos testados via `curl` |
 | Rotas protegidas com JWT | ✅ Validado | users e companies: sem token retornam 401, com token válido retornam 200 |
+| RBAC com RolesGuard | ✅ Validado | admin acessa tudo; company_owner só GET /companies; employee e client bloqueados com 403 |
 | Prisma gera client e executa migration | ⚠️ Não testado | Migration `init` existe no diretório, mas `prisma migrate dev` não foi reexecutado |
 | Admin Web abre em `localhost:3001` | ⚠️ Não testado | Next.js configurado na porta 3001, mas sem execução |
 | Flutter executa splash/login/carteira | ⚠️ Não testado | 3 telas implementadas, mas sem `flutter run` na sessão
@@ -98,6 +100,22 @@ Testes executados em 26/06/2026 contra `localhost:3000` com o servidor rodando v
 | Credenciais válidas | HTTP 200 OK — `{ accessToken, user: { id, name, email, role, status } }` |
 | Senha incorreta | HTTP 401 Unauthorized — `{ "message": "Credenciais inválidas." }` |
 
+### RBAC — RolesGuard
+
+| Cenário | Resultado |
+|---------|-----------|
+| admin GET /users | HTTP 200 — lista de usuários |
+| client GET /users | HTTP 403 — `{ "message": "Acesso negado." }` |
+| employee GET /users | HTTP 403 |
+| admin POST /companies | HTTP 201 (ou 500 sem banco — guard passou) |
+| client POST /companies | HTTP 403 |
+| company_owner PATCH /companies/:id/block | HTTP 403 |
+| admin PATCH /companies/:id/block | Guard autoriza (HTTP 500 sem banco) |
+| company_owner GET /companies | HTTP 200 — permitido |
+| employee GET /companies | HTTP 403 |
+| client GET /companies | HTTP 403 |
+| Rotas públicas sem token | HTTP 200/201 — permanecem públicas |
+
 ### JWT Guard — rotas protegidas
 
 | Cenário | Resultado |
@@ -144,7 +162,7 @@ Testes executados em 26/06/2026 contra `localhost:3000` com o servidor rodando v
 ## Pendências e problemas conhecidos
 
 ### Segurança e LGPD
-- ~~**Rotas não protegidas:** Nenhum `@UseGuards()`, `AuthGuard` ou `RolesGuard` implementado~~ (corrigido — JwtAuthGuard protege users e companies)
+- ~~**Rotas não protegidas:** Nenhum `@UseGuards()`, `AuthGuard` ou `RolesGuard` implementado~~ (corrigido — JwtAuthGuard protege users e companies; RolesGuard com @Roles define permissões por perfil)
 - **Risco de enumeração:** `/auth/register` retorna erro específico se e-mail existe
 - **Risco de brute force:** `/auth/login` não possui rate limiting
 - **Risco de IDOR:** rotas com parâmetros de ID não validam permissão
@@ -181,7 +199,7 @@ Testes executados em 26/06/2026 contra `localhost:3000` com o servidor rodando v
 ## Próximos passos (Sprint 02)
 
 1. ~~Implementar JWT Guards em todas as rotas existentes~~ (concluído)
-2. RolesGuard com decorator @Roles (RBAC)
+2. ~~RolesGuard com decorator @Roles (RBAC)~~ (concluído)
 3. Refresh token com rotação
 4. Vincular CompanyUser no registro (usuário como COMPANY_OWNER)
 5. Seed inicial (Admin Master padrão)
