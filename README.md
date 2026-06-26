@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # LoopClub Enterprise — Sprint 01
 
 Fundação técnica do LoopClub SaaS v1.0.
@@ -78,3 +79,6 @@ Ainda não há seed obrigatório nesta Sprint. A Sprint 02 criará login funcion
 ## Status
 
 Esta Sprint entrega a fundação. Não é o produto final, mas já é a base correta para evoluir.
+=======
+# loopclub-enterprise
+>>>>>>> 53f0b40aae78215bea5062b5dfb32af2b94319c7
