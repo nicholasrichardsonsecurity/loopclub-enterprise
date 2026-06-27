@@ -15,6 +15,8 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - Swagger atualizado com `@ApiBearerAuth()` e `@ApiUnauthorizedResponse()` nas rotas protegidas
 - RolesGuard com `@Roles()` para controle de acesso baseado em perfil (admin, company_owner, employee, client)
 - Matriz de permissões: GET /users (admin), GET /companies (admin, company_owner), POST/PATCH companies (admin)
+- **Padrões brasileiros como requisito transversal permanente** — documentado em 9 arquivos (PRODUCT, ARCHITECTURE, DATABASE, API, DEVELOPMENT, LGPD, SECURITY, DECISIONS, STATUS). Especificação completa de idioma pt-BR, moeda R$, datas DD/MM/AAAA, horário 24h, timezone America/Recife, telefone com DDD, CPF, CNPJ, CEP e endereço brasileiro. ADR-017 registrado. **Nenhum controle implementado no código.**
+- **Correções de documentação viva:** STATUS.md, INSTALLATION.md, DEVELOPMENT.md, README.md, .env.example
 
 ### Validado
 
@@ -28,9 +30,6 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - JwtAuthGuard — rotas sem token retornam 401, com token inválido retornam 401, com token válido retornam 200
 - Rotas públicas — `GET /auth/health`, `POST /auth/register`, `POST /auth/login` permanecem acessíveis sem token
 - Swagger Bearer Auth — documentação e autenticação via Swagger UI validada
-
-### Validação completa da matriz RBAC
-
 - **Matriz RBAC validada manualmente** — todos os 4 perfis (admin, company_owner, employee, client) testados contra todas as 6 rotas protegidas via `curl`.
 - **Diferenciação 401 vs 403 confirmada** — usuário não autenticado recebe 401; usuário autenticado sem permissão recebe 403.
 - **Permissões de admin validadas:** acesso completo a GET /users (200), GET /companies (200), POST /companies (201), PATCH block/unblock (200).
@@ -41,11 +40,6 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - **Nenhum token, senha ou hash registrado nos testes.**
 - **Princípio do menor privilégio confirmado:** cada perfil acessa exclusivamente o mínimo necessário.
 - **Swagger Bearer Auth validado** em conjunto com a matriz.
-
-### Adicionado
-
-- **Padrões brasileiros como requisito transversal permanente** — documentado em 9 arquivos (PRODUCT, ARCHITECTURE, DATABASE, API, DEVELOPMENT, LGPD, SECURITY, DECISIONS, STATUS). Especificação completa de idioma pt-BR, moeda R$, datas DD/MM/AAAA, horário 24h, timezone America/Recife, telefone com DDD, CPF, CNPJ, CEP e endereço brasileiro. ADR-017 registrado. **Nenhum controle implementado no código.**
-- **Correções de documentação viva:** STATUS.md, INSTALLATION.md, DEVELOPMENT.md, README.md, .env.example
 
 ### Corrigido
 
