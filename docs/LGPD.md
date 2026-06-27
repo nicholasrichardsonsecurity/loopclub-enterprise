@@ -112,7 +112,9 @@ Aplica-se a todo tratamento de dados pessoais realizado pela plataforma LoopClub
 - Guardas JWT (JwtAuthGuard) nas rotas users e companies
 - RBAC (RolesGuard) com decorator @Roles — perfis admin, company_owner, employee, client
 - Validação de entrada com `class-validator`
-- Whitelist de parâmetros via ValidationPipe
+- Whitelist de parâmetros via ValidationPipe com `forbidNonWhitelisted: true`
+- Registro público não coleta `phone` nem aceita `role` no body — coleta mínima de dados (somente name, email, password)
+- Role `client` forçada internamente no registro público — impede escalada de privilégio via API
 - Helmet para headers de segurança (CSP, HSTS, X-Frame-Options, X-Content-Type-Options)
 - CORS configurável por ambiente via `CORS_ORIGIN`
 - Header `x-powered-by` removido

@@ -30,6 +30,10 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - Swagger Bearer Auth — documentação e autenticação via Swagger UI validada
 - RolesGuard — admin acessa todas as rotas; company_owner acessa apenas GET /companies; employee e client recebem 403
 
+### Corrigido
+
+- **Falha crítica de segurança em POST /auth/register** — endpoint público aceitava `role` no body, permitindo criação de contas administrativas sem autenticação. Removido `role` e `phone` do `RegisterDto`. Service agora força `role: "client"` internamente. `ValidationPipe` global com `forbidNonWhitelisted: true` rejeita campos administrativos (role, status, companyId, permissions) com HTTP 400. Swagger atualizado para mostrar apenas name, email e password.
+
 ## [0.1.0] — 2026-06-26
 
 ### Adicionado

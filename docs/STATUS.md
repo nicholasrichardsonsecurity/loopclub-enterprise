@@ -18,9 +18,11 @@ Atualizado em: 26/06/2026
 
 ### Autenticação — validado manualmente via `curl`
 
-- [x] **POST /auth/register — cadastro novo** — `validado manualmente`. Retorna HTTP 201 Created com `{ user: { id, name, email, role, status } }`. `passwordHash` não exposto.
+- [x] **POST /auth/register — cadastro novo** — `validado manualmente`. Retorna HTTP 201 Created com `{ user: { id, name, email, role: "client", status } }`. `passwordHash` não exposto. Role forçada como `client` internamente, nunca aceita do body.
 - [x] **POST /auth/register — e-mail duplicado** — `validado manualmente`. Retorna HTTP 409 Conflict com `{ "message": "E-mail já cadastrado." }`.
 - [x] **POST /auth/register — dados inválidos** — `validado manualmente`. Retorna HTTP 400 Bad Request com array de erros de validação.
+- [x] **POST /auth/register — segurança: rejeição de campos administrativos** — `validado manualmente`. Role (admin/company_owner/employee), status, companyId, permissions, phone são rejeitados com HTTP 400 e `"property X should not exist"`. `forbidNonWhitelisted: true` ativo no ValidationPipe global.
+- [x] **POST /auth/register — segurança: role sempre client** — `validado manualmente`. Qualquer cadastro sem role ou com role inválida no body resulta em `role: "client"` no banco.
 - [x] **POST /auth/login — credenciais válidas** — `validado manualmente`. Retorna HTTP 200 OK com `{ accessToken, user }`.
 - [x] **POST /auth/login — credenciais inválidas** — `validado manualmente`. Retorna HTTP 401 Unauthorized com `{ "message": "Credenciais inválidas." }`. Não revela se o e-mail existe.
 - [x] **Hash de senha** — `validado manualmente`. bcrypt com 10 rounds confirmado no código-fonte (`auth.service.ts`). `passwordHash` não exposto em respostas.

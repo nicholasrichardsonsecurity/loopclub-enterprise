@@ -12,7 +12,7 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
 - **JwtStrategy:** valida assinatura, expiração e payload (sub, role) — `implementado e validado`
 - **JwtAuthGuard:** protege rotas de users e companies; decorator `@Public()` permite exceções — `implementado e validado`
 - **Validação de entrada:** DTOs com `class-validator` garantem tipos e formatos
-- **Whitelist de dados:** `ValidationPipe` com `whitelist: true` rejeita campos não esperados
+- **Whitelist de dados:** `ValidationPipe` com `whitelist: true, forbidNonWhitelisted: true` — campos administrativos (role, status, companyId, permissions, phone) são rejeitados com HTTP 400 — `validado manualmente`
 - **`passwordHash` não exposto:** `select` limita retorno a 5 campos (id, name, email, role, status) — `validado manualmente` (resposta do register não contém hash)
 
 ### Headers de segurança

@@ -1,22 +1,18 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
-import { UserRole } from '@prisma/client';
+import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
+  @ApiProperty({ example: 'João Silva', description: 'Nome completo' })
   @IsString()
   @IsNotEmpty()
   name!: string;
 
+  @ApiProperty({ example: 'joao@email.com', description: 'E-mail do usuário' })
   @IsEmail()
   email!: string;
 
-  @IsOptional()
-  @IsString()
-  phone?: string;
-
+  @ApiProperty({ example: '123456', description: 'Senha (mínimo 6 caracteres)', minLength: 6 })
   @IsString()
   @MinLength(6)
   password!: string;
-
-  @IsEnum(UserRole)
-  role!: UserRole;
 }

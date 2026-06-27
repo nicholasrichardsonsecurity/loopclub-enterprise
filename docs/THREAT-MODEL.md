@@ -123,10 +123,10 @@
 | **Ativo** | Criação/atualização de registros |
 | **Ameaça** | Atacante envia campos extras no corpo da requisição para alterar dados não permitidos |
 | **Impacto** | Alteração indevida de role, status, etc. |
-| **Probabilidade** | Média |
+| **Probabilidade** | Baixa |
 | **Severidade** | Alta |
-| **Mitigação atual** | `ValidationPipe` com `whitelist: true` rejeita campos não esperados; DTOs definem campos permitidos |
-| **Mitigação pendente** | Revisão se todos os DTOs estão sendo aplicados corretamente |
+| **Mitigação atual** | `ValidationPipe` global com `whitelist: true` e `forbidNonWhitelisted: true` rejeita campos administrativos (role, status, companyId, permissions, phone) com HTTP 400 — validado manualmente. DTOs definem campos permitidos. AuthService força `role: "client"` no registro. |
+| **Mitigação pendente** | Revisar demais DTOs (companies, users) para mesmo padrão de whitelist |
 
 ### T10 — Exposição de dados sensíveis em logs
 
@@ -171,10 +171,10 @@
 | **Ativo** | Role do usuário |
 | **Ameaça** | Usuário altera própria role ou acessa recursos de perfil superior |
 | **Impacto** | Acesso administrativo não autorizado |
-| **Probabilidade** | Média |
+| **Probabilidade** | Baixa |
 | **Severidade** | Crítica |
-| **Mitigação atual** | Nenhuma — registro permite escolher qualquer role; sem RBAC funcional |
-| **Mitigação pendente** | RolesGuard; apenas ADMIN pode criar ADMIN; validar role no JWT em cada rota restrita |
+| **Mitigação atual** | `RegisterDto` não aceita `role` no body. AuthService força `role: "client"` no registro público. `ValidationPipe` com `forbidNonWhitelisted: true` rejeita role, status, companyId enviados. RolesGuard com matriz de permissões. |
+| **Mitigação pendente** | Garantir que endpoint de atualização de perfil (futuro) não permita auto-elevação de role |
 
 ### T14 — Vazamento em backups
 
@@ -219,9 +219,9 @@
 | Severidade | Quantidade |
 |------------|-----------|
 | Crítica | 5 (T01, T08, T11, T13, T15) |
-| Alta | 8 (T03, T04, T05, T06, T07, T09, T10, T12, T16) |
+| Alta | 7 (T03, T04, T05, T06, T07, T10, T12, T16) |
 | Média | 2 (T02, T14) |
-| Baixa | 0 |
+| Baixa | 2 (T09, T13 — probabilidade reduzida após mitigação) |
 
 **Total de ameaças identificadas:** 16
 
@@ -229,5 +229,5 @@
 
 | Tipo | Quantidade |
 |------|-----------|
-| Controles existentes | Mínimos — Prisma ORM (anti SQL injection), ValidationPipe whitelist, bcrypt, .gitignore, expiração de JWT |
-| Controles pendentes | 16 ameaças com lacunas de controle |
+| Controles existentes | Parciais — Prisma ORM (anti SQL injection), ValidationPipe whitelist + forbidNonWhitelisted, bcrypt, .gitignore, expiração de JWT, JwtAuthGuard, RolesGuard, RegisterDto sem role |
+| Controles pendentes | 14 ameaças com lacunas de controle |

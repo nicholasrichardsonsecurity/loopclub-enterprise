@@ -42,6 +42,7 @@ Criar a base técnica e executável do LoopClub Enterprise, com monorepo organiz
 22. Decorators Swagger do Auth documentam respostas corretas (register: 201, 409, 400; login: 200, 401, 400)
 23. JwtStrategy + JwtAuthGuard implementados: users e companies protegidos com JWT Bearer; auth público via `@Public()`
 24. RolesGuard + @Roles implementados: matriz de permissões (admin, company_owner, employee, client) aplicada a users e companies
+25. **Correção de segurança crítica:** `POST /auth/register` não aceita mais `role`, `status`, `companyId`, `permissions` ou `phone` no body. `ValidationPipe` global com `forbidNonWhitelisted: true`. Service força `role: "client"` internamente. Swagger atualizado.
 
 ## Critérios de aceite
 
@@ -92,6 +93,14 @@ Testes executados em 26/06/2026 contra `localhost:3000` com o servidor rodando v
 | Cadastro novo com dados válidos | HTTP 201 Created — `{ user: { id, name, email, role, status } }` |
 | E-mail já cadastrado | HTTP 409 Conflict — `{ "message": "E-mail já cadastrado." }` |
 | Dados inválidos (nome vazio, e-mail inválido, senha curta) | HTTP 400 Bad Request — array de erros de validação |
+| Role admin no body | HTTP 400 — `"property role should not exist"` |
+| Role company_owner no body | HTTP 400 |
+| Role employee no body | HTTP 400 |
+| Status no body | HTTP 400 |
+| CompanyId no body | HTTP 400 |
+| Permissions no body | HTTP 400 |
+| Phone no body (campo removido) | HTTP 400 |
+| Cadastro sem role | HTTP 201 — role forçada como `client` |
 
 ### POST /auth/login
 
