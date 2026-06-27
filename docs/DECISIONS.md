@@ -279,3 +279,24 @@ Este documento registra as principais decisões arquiteturais do projeto, usando
 - Positivas: JWT leve (sem companyId); efeito imediato ao remover/inativar vínculo (sem esperar expiração de token); isolamento sem migration; schema inalterado; infraestrutura reutilizável para novos módulos
 - Negativas: consulta ao banco em cada requisição empresarial (cache adiado); validação de múltiplos vínculos pela aplicação (não há constraint no banco); company_owner com múltiplas empresas não tem seleção explícita de tenant nesta etapa
 - Riscos: esquecer de adicionar `@RequireCompany()` em nova rota empresarial; vínculo órfão se empresa for excluída (soft delete mitigaria)
+
+---
+
+## ADR-019 — Jest e ts-jest para testes unitários com mocks do Prisma
+
+**Status:** Aceito
+
+**Contexto:** O projeto não possuía nenhum teste automatizado. Era necessário estabelecer uma infraestrutura de testes para validar as regras de multi-tenancy sem dependência de banco de dados.
+
+**Decisão:** Adotar Jest com ts-jest como stack de testes unitários. O PrismaService é mockado nos testes. A configuração é separada da produção (`jest.config.cjs` + `tsconfig.spec.json`). O build de produção continua excluindo arquivos `.spec.ts`.
+
+**Detalhes da implementação:**
+- `npm test`, `npm run test:watch`, `npm run test:cov` como scripts.
+- `backend/coverage/` é artefato local ignorado pelo `.gitignore`.
+- Testes unitários próximos aos módulos (`src/modules/*/*.spec.ts`).
+- Testes e2e com Supertest e banco PostgreSQL exclusivo ficam para fase futura.
+
+**Consequências:**
+- Positivas: testes rápidos sem banco; TenantService e TenantGuard com 100% de cobertura; detecção precoce de regressões; base para expansão para outros módulos.
+- Negativas: mocks do Prisma precisam ser mantidos atualizados com o schema; testes unitários não substituem e2e para validar fluxo HTTP completo.
+- Riscos: dependências Jest/ts-jest podem tornar-se incompatíveis em atualizações futuras — devem ser validadas antes de adoção.

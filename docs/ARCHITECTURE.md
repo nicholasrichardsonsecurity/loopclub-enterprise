@@ -235,6 +235,24 @@ O LoopClub Enterprise é desenvolvido exclusivamente para o mercado brasileiro. 
 
 > Consulte [PRODUCT.md](PRODUCT.md) para a especificação completa dos padrões brasileiros e [DECISIONS.md](DECISIONS.md) (ADR-017) para a decisão arquitetural.
 
+## Estratégia de testes
+
+### Testes unitários
+- Ficam próximos aos módulos testados (`src/modules/*/*.spec.ts`).
+- Usam mocks do PrismaService — não acessam banco de dados.
+- Cobertura: TenantService (100%), TenantGuard (100%), CompaniesService.findAll (parcial).
+- Jest com ts-jest, configurado via `jest.config.cjs` e `tsconfig.spec.json`.
+
+### Testes e2e (pendentes)
+- Ficarão em `backend/test/`.
+- Exigirão Supertest, banco PostgreSQL exclusivo e seed dedicado.
+- Validarão o fluxo HTTP completo: autenticação → autorização → tenant isolation.
+
+### Regras
+- O banco de desenvolvimento nunca deve ser usado nos testes automatizados.
+- `backend/coverage/` é artefato local e está ignorado pelo `.gitignore`.
+- Arquivos `.spec.ts` não entram no build de produção.
+
 ## Documentos de arquitetura relacionados
 
 - [LGPD.md](LGPD.md) — Adequação à LGPD e privacy by design

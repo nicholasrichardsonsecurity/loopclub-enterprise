@@ -29,7 +29,7 @@
 | **Impacto** | Vazamento generalizado de dados, violação de isolamento multi-tenant |
 | **Probabilidade** | Média |
 | **Severidade** | Crítica |
-| **Mitigação atual** | **Implementado no GET /companies:** TenantGuard + TenantService consultam CompanyUser ativo, validam vínculo e empresa, injetam companyId no request.user. CompanyId nunca vem do JWT, body, query ou params. Admin vê todas; company_owner vê somente sua empresa. Zero vínculos, múltiplos vínculos e incoerência de papéis bloqueados com 403. 9 testes HTTP validados. |
+| **Mitigação atual** | **Implementado no GET /companies:** TenantGuard + TenantService consultam CompanyUser ativo, validam vínculo e empresa, injetam companyId no request.user. CompanyId nunca vem do JWT, body, query ou params. Admin vê todas; company_owner vê somente sua empresa. Zero vínculos, múltiplos vínculos e incoerência de papéis bloqueados com 403. 9 testes HTTP validados. 19 testes unitários automatizados (TenantService 100%, TenantGuard 100%, CompaniesService parcial). Risco residual: testes e2e com tenants Alpha e Beta ainda pendentes. |
 | **Mitigação pendente** | Estender tenant isolation para todas as rotas empresariais (programas, transações, progresso). Implementar GET /companies/:id com retorno 404 para recursos de outro tenant. AuditLog para inconsistências de tenant. |
 
 ### T02 — Enumeração de usuários

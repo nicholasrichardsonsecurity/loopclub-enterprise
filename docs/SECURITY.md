@@ -27,6 +27,12 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
 - **Segredos:** `.env` bloqueado pelo `.gitignore`; `.env.example` com valores fictícios
 - **Seed protegido:** `prisma/seed.ts` com allowlist de ambientes — permitido exclusivamente com `NODE_ENV=development` ou `NODE_ENV=test`. Qualquer outro valor (production, staging, ausente, inválido) bloqueia imediatamente com erro claro. Senha lida exclusivamente da variável `RBAC_SEED_PASSWORD`. Upsert com `update: {}` — não altera nenhum dado de usuários existentes. Nenhum token, senha, hash ou JWT_SECRET é exibido nos logs. `RBAC_SEED_PASSWORD` documentada no `.env.example` com aviso de uso exclusivo local.
 
+### Testes automatizados
+- Testes unitários do TenantService, TenantGuard e CompaniesService criados e executados — 19 testes aprovados, 0 falhos.
+- Testes usam mocks do PrismaService — nenhum banco real foi acessado.
+- Testes unitários reduzem o risco de regressões no isolamento multiempresa, mas não substituem validação HTTP e2e.
+- Autenticação (JwtAuthGuard, JwtStrategy, RolesGuard) ainda não possui testes automatizados — apenas validação manual.
+
 ### Banco e ORM
 - **Prevenção SQL injection:** Prisma ORM usa queries parametrizadas
 - **Conexão:** string com senha em variável de ambiente (não hardcoded)

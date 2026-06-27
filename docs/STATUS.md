@@ -104,6 +104,30 @@ Primeira camada de isolamento multiempresa, aplicada ao módulo de empresas. Inf
 
 **Total: 9 cenários executados, 9 aprovados (100%).**
 
+#### Testes unitários automatizados — validado
+
+3 suítes de testes unitários criadas e executadas com Jest + ts-jest, usando mocks do PrismaService (sem banco real):
+
+| Suíte | Testes | Status | Cobertura |
+|-------|:------:|:------:|:---------:|
+| TenantService | 9 | ✅ 9 passed | 100% |
+| TenantGuard | 5 | ✅ 5 passed | 100% |
+| CompaniesService (findAll) | 5 | ✅ 5 passed | 81% (parcial) |
+| **Total** | **19** | **✅ 19 aprovados, 0 falhos** | — |
+
+**Comandos disponíveis:**
+- `npm test` — executa testes unitários
+- `npm run test:watch` — modo watch para desenvolvimento
+- `npm run test:cov` — executa com relatório de cobertura
+
+**Observações:**
+- Nenhum banco de dados foi acessado durante os testes.
+- Nenhum seed foi executado.
+- Nenhum código funcional precisou ser corrigido.
+- Jest e ts-jest executaram sem warnings de compatibilidade.
+- `backend/coverage/` é artefato local ignorado pelo .gitignore.
+- Testes e2e com Supertest e banco PostgreSQL exclusivo continuam pendentes.
+
 #### Pendências (não declarar como concluído)
 - Isolamento em POST/PATCH companies — não implementado (rotas exclusivas admin, sem tenant).
 - Rota empresarial permitida para employee — nenhuma existe ainda.
@@ -113,7 +137,14 @@ Primeira camada de isolamento multiempresa, aplicada ao módulo de empresas. Inf
 - AuditLog para inconsistências de tenant — não implementado.
 - Permissões para CompanyUserRole.manager — não definidas.
 - Seleção explícita de tenant para múltiplas empresas — adiada.
-- Testes automatizados — nenhum arquivo `.spec.ts`.
+- Testes e2e com Supertest — pendentes (fase 2).
+- Banco PostgreSQL exclusivo para testes — pendente.
+- Seed exclusivo para e2e — pendente.
+- Testes automatizados do JwtAuthGuard — pendentes.
+- Testes automatizados da JwtStrategy — pendentes.
+- Testes automatizados do RolesGuard — pendentes.
+- Cobertura de create e updateStatus no CompaniesService — pendente.
+- Testes HTTP automatizados do GET /companies — pendentes.
 
 #### Regras de validação do TenantService
 - Zero vínculos ativos → 403 "Nenhum vínculo empresarial encontrado."
@@ -203,7 +234,7 @@ Primeira camada de isolamento multiempresa, aplicada ao módulo de empresas. Inf
 
 - [ ] **Validar Docker Compose** — `docker compose up -d postgres` não foi executado nesta sessão.
 - [ ] **Validar conexão Prisma** — `prisma migrate dev` não foi reexecutado para confirmar consistência.
-- [ ] **Testes automatizados** — 0 arquivos `.spec.ts` no projeto (excluindo `node_modules`).
+- **Testes automatizados** — 0 arquivos `.spec.ts` no projeto (excluindo `node_modules`).
 
 ### Requisitos transversais (permanentes)
 
@@ -227,6 +258,7 @@ Primeira camada de isolamento multiempresa, aplicada ao módulo de empresas. Inf
 ### Próximos itens a implementar (Sprint 02)
 
 - [x] Guardas JWT (JwtAuthGuard) em users e companies — `implementado e validado`
+- [x] **Infraestrutura inicial de testes unitários (Jest + ts-jest)** — `implementado e validado`. 3 suítes, 19 testes, 19 aprovados. Configuração separada em jest.config.cjs e tsconfig.spec.json. Build de produção continua excluindo arquivos .spec.ts. Nenhum banco acessado. Cobertura: TenantService 100%, TenantGuard 100%, CompaniesService parcial. Supertest não instalado, testes e2e pendentes.
 - [x] RolesGuard com decorator @Roles (RBAC) — `implementado e validado`
 - [ ] Validação de token expirado — pendente de teste específico
 - [ ] Refresh token com rotação e revogação

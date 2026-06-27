@@ -17,6 +17,7 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - Matriz de permissões: GET /users (admin), GET /companies (admin, company_owner), POST/PATCH companies (admin)
 - **Padrões brasileiros como requisito transversal permanente** — documentado em 9 arquivos (PRODUCT, ARCHITECTURE, DATABASE, API, DEVELOPMENT, LGPD, SECURITY, DECISIONS, STATUS). Especificação completa de idioma pt-BR, moeda R$, datas DD/MM/AAAA, horário 24h, timezone America/Recife, telefone com DDD, CPF, CNPJ, CEP e endereço brasileiro. ADR-017 registrado. **Nenhum controle implementado no código.**
 - **Correções de documentação viva:** STATUS.md, INSTALLATION.md, DEVELOPMENT.md, README.md, .env.example
+- **Infraestrutura inicial de testes unitários** — Jest + ts-jest configurados com jest.config.cjs e tsconfig.spec.json. Scripts `npm test`, `npm run test:watch` e `npm run test:cov`. Build de produção continua excluindo spec files. Cobertura versionada localmente e ignorada pelo .gitignore.
 - **Primeira camada de isolamento multiempresa no módulo de empresas via CompanyUser** — TenantModule, TenantService, TenantGuard e decorator `@RequireCompany()`. PrismaModule global. Resolução do companyId por requisição via banco (sem companyId no JWT). GET /companies: admin vê todas, company_owner vê somente sua empresa vinculada. Validação de coerência User.role × CompanyUser.role. Bloqueio de zero vínculos, múltiplos vínculos e empresa inativa. Nenhuma migration, schema inalterado. Seed atualizado com Empresa Alpha, Beta, usuários multi-vínculo e sem vínculo. Build aprovado. 9 testes HTTP validados (100%).
 
 ### Validado
@@ -41,6 +42,7 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - **Nenhum token, senha ou hash registrado nos testes.**
 - **Princípio do menor privilégio confirmado:** cada perfil acessa exclusivamente o mínimo necessário.
 - **Swagger Bearer Auth validado** em conjunto com a matriz.
+- **3 suítes de testes unitários (Jest + ts-jest):** TenantService (9 testes, 100% cobertura), TenantGuard (5 testes, 100% cobertura), CompaniesService.findAll (5 testes). 19 testes aprovados, 0 falhos. Nenhum banco acessado. Nenhum código funcional corrigido. Nenhum warning de compatibilidade.
 
 ### Corrigido
 

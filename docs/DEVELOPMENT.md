@@ -94,6 +94,43 @@ apps/admin-web/app/
 └── styles.css
 ```
 
+## Testes
+
+### Comandos de teste
+
+```powershell
+# Executar todos os testes unitários (modo determinístico)
+npm test
+
+# Executar em modo watch (desenvolvimento local)
+npm run test:watch
+
+# Executar com relatório de cobertura
+npm run test:cov
+```
+
+### Estratégia de testes
+
+- **Testes unitários:** usam mocks do PrismaService. Não acessam PostgreSQL. Executam rapidamente.
+- **Testes e2e:** pendentes. Exigirão Supertest, banco PostgreSQL exclusivo e seed dedicado.
+- **Cobertura:** relatório gerado em `backend/coverage/`. Este diretório é ignorado pelo `.gitignore` e não deve ser versionado.
+- **Configuração:** Jest configurado via `jest.config.cjs` (CommonJS). TypeScript para testes em `tsconfig.spec.json` (separado do tsconfig de produção).
+- **Build de produção:** arquivos `.spec.ts` continuam excluídos do build.
+
+### Suítes atuais
+
+| Suíte | Arquivo | Testes | Cobertura |
+|-------|---------|:------:|:---------:|
+| TenantService | `src/modules/tenant/tenant.service.spec.ts` | 9 | 100% |
+| TenantGuard | `src/modules/tenant/tenant.guard.spec.ts` | 5 | 100% |
+| CompaniesService | `src/modules/companies/companies.service.spec.ts` | 5 | Parcial (findAll) |
+
+**Total:** 19 testes, 19 aprovados, 0 falhos.
+
+### Compatibilidade
+
+Jest e ts-jest foram validados na versão atual do projeto. Atualizações futuras dessas dependências devem ser testadas antes de adoção.
+
 ## Prisma
 
 ### Comandos frequentes
