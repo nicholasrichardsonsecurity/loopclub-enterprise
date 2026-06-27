@@ -215,6 +215,50 @@ erDiagram
     User ||--o{ Transaction : "como operador"
 ```
 
+## Padrões brasileiros — regras de armazenamento (planejado)
+
+O produto atende exclusivamente o mercado brasileiro. As regras abaixo são requisito transversal e permanente. **A implementação destas regras no schema atual está pendente**, exceto onde explicitamente indicado.
+
+### Estado atual do schema
+- `DateTime` do Prisma já armazena em UTC — compatível com o requisito
+- `Plan.price` e `Subscription.price` já usam `Decimal` — compatível com o requisito monetário
+- `User.phone` é `String?` — armazena string livre, sem validação de formato brasileiro
+- Não há campos de CPF, CNPJ, CEP ou endereço no schema atual
+- Não há normalização ou validação de DDD, dígitos verificadores ou formato de CEP
+
+### Estado planejado
+
+#### Datas e timestamps
+- Manter UTC (ISO 8601) — já implementado via `DateTime` do Prisma
+- Timezone padrão de exibição: America/Recife (configurável por empresa no futuro) — **não implementado**
+- Nunca armazenar datas como string formatada (DD/MM/AAAA) no banco — já é prática válida
+- Conversão para fuso local feita exclusivamente na camada de apresentação — **não implementado**
+
+#### Valores monetários
+- Manter `Decimal` do Prisma/PostgreSQL (`@db.Decimal(10,2)`) — já implementado em `Plan.price` e `Subscription.price`
+- Nunca usar float para moeda — prática já seguida
+- Formatação pt-BR aplicada apenas na apresentação — **não implementado** (não há formatação pt-BR nos frontends)
+
+#### CPF e CNPJ — planejado, não implementado no schema
+- Armazenar como `String?` normalizada (apenas números, sem pontos, traços ou barras)
+- CPF: 11 dígitos, CNPJ: 14 dígitos — validar dígitos verificadores antes de persistir
+- Aplicar `@unique` quando o documento for identificador único do registro
+- **Schema atual:** nenhum campo de CPF ou CNPJ existe
+
+#### Telefones — planejado, validação não implementada
+- Armazenar como `String` normalizada (apenas números) com DDD obrigatório
+- Não armazenar formatação visual (parênteses, traços, espaços)
+- **Schema atual:** `User.phone` e `Company.phone` são `String?` — aceitam qualquer formato, sem validação de DDD ou dígitos
+
+#### CEP — planejado, não implementado no schema
+- Armazenar como `String` de 8 dígitos (apenas números)
+- Exibir como 00000-000 (máscara na apresentação)
+- **Schema atual:** nenhum campo de CEP existe
+
+#### Endereço — planejado, não implementado no schema
+- Modelo brasileiro: logradouro, número, complemento, bairro, município, UF (2 caracteres), CEP
+- **Schema atual:** nenhum campo de endereço existe em qualquer modelo
+
 ## Observações
 
 - Todas as chaves primárias usam UUID

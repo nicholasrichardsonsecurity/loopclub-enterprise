@@ -216,6 +216,49 @@ Authorization: Bearer <token>
 | Dashboard | Métricas por empresa, métricas globais |
 | Audit | Consulta de logs de auditoria |
 
+## Padrões brasileiros — formato dos dados na API (planejado)
+
+O LoopClub Enterprise atende exclusivamente o mercado brasileiro. Os padrões abaixo descrevem o **formato planejado** para dados brasileiros na API. Nenhuma dessas validações ou formatos está implementada no código atual — são requisitos aprovados que devem ser implementados progressivamente.
+
+### Estado atual
+- A API retorna datas em ISO 8601 UTC (comportamento padrão do NestJS/JavaScript — sem conversão de timezone)
+- A API não possui campos de CPF, CNPJ, endereço ou CEP atualmente
+- O campo `phone` no schema aceita string livre, sem validação de formato brasileiro
+- Valores monetários em `Plan.price` e `Subscription.price` usam Decimal no banco (já implementado), mas a API retorna como `number` sem formatação pt-BR
+
+### Estado planejado
+
+#### Datas e horários
+- **Requisição:** aceitar datas em ISO 8601 (`2026-06-27T14:30:00Z` ou `2026-06-27T11:30:00-03:00`)
+- **Resposta:** retornar datas em ISO 8601 UTC (`2026-06-27T14:30:00.000Z`)
+- **Interface:** conversão para America/Recife e formato DD/MM/AAAA é responsabilidade do frontend
+- **Nota:** o comportamento atual (ISO 8601 UTC) já é compatível — a diferença é que a conversão de timezone na exibição não está implementada
+
+#### Valores monetários
+- Aceitar e retornar valores como `number` (ex.: `29.90`), correspondentes ao tipo Decimal do banco — comportamento já padrão
+- Frontend responsável pela formatação pt-BR (`R$ 29,90`)
+- Nunca retornar valores como string formatada para evitar erro de precisão
+
+#### Documentos (CPF e CNPJ) — planejado, não implementado
+- CPF e CNPJ aceitos apenas como números (11 e 14 dígitos, sem máscara)
+- Validação de dígitos verificadores no backend
+- Resposta da API retorna documentos sem máscara (números apenas)
+- Formatação visual é responsabilidade do frontend
+- **Atualmente:** não há campos de CPF ou CNPJ em nenhum endpoint da API
+
+#### Telefones — planejado, não implementado
+- Aceitar telefones como números com DDD (10 ou 11 dígitos)
+- E.164 para integrações externas
+- **Atualmente:** o campo `phone` aceita string livre. O DTO de criação de empresa (`CreateCompanyDto`) tem `phone` como `@IsOptional() @IsString()` — sem validação de formato brasileiro
+
+#### CEP — planejado, não implementado
+- Aceitar CEP como 8 dígitos numéricos
+- **Atualmente:** não há campo de CEP em nenhum endpoint
+
+#### Endereço — planejado, não implementado
+- Modelo brasileiro: logradouro, número, complemento, bairro, município, UF (2 caracteres), CEP
+- **Atualmente:** não há campos de endereço em nenhum endpoint ou schema
+
 ## Observações de segurança
 
 - **Validação:** DTOs validam tipos, campos obrigatórios e formato de e-mail. `ValidationPipe` global com `whitelist: true, forbidNonWhitelisted: true` — campos não declarados no DTO são rejeitados com HTTP 400

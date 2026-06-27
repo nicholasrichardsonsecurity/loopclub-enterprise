@@ -42,10 +42,20 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - **Princípio do menor privilégio confirmado:** cada perfil acessa exclusivamente o mínimo necessário.
 - **Swagger Bearer Auth validado** em conjunto com a matriz.
 
+### Adicionado
+
+- **Padrões brasileiros como requisito transversal permanente** — documentado em 9 arquivos (PRODUCT, ARCHITECTURE, DATABASE, API, DEVELOPMENT, LGPD, SECURITY, DECISIONS, STATUS). Especificação completa de idioma pt-BR, moeda R$, datas DD/MM/AAAA, horário 24h, timezone America/Recife, telefone com DDD, CPF, CNPJ, CEP e endereço brasileiro. ADR-017 registrado. **Nenhum controle implementado no código.**
+- **Correções de documentação viva:** STATUS.md, INSTALLATION.md, DEVELOPMENT.md, README.md, .env.example
+
 ### Corrigido
 
 - **Falha crítica de segurança em POST /auth/register** — endpoint público aceitava `role` no body, permitindo criação de contas administrativas sem autenticação. Removido `role` e `phone` do `RegisterDto`. Service agora força `role: "client"` internamente. `ValidationPipe` global com `forbidNonWhitelisted: true` rejeita campos administrativos (role, status, companyId, permissions) com HTTP 400. Swagger atualizado para mostrar apenas name, email e password.
 - **Segurança do seed (`prisma/seed.ts`)** — senha fixa removida do código. Seed lê `RBAC_SEED_PASSWORD` de variável de ambiente. Allowlist de ambientes: permitido exclusivamente com `NODE_ENV=development` ou `NODE_ENV=test` (production, staging, ausente ou inválido bloqueiam). Upsert com `update: {}` — não altera nenhum dado de usuários existentes. Nenhum token, senha, hash ou JWT_SECRET é exibido nos logs. `.env.example` documenta `RBAC_SEED_PASSWORD` com aviso de uso exclusivo local.
+- **Documentação: URL de clone corrigida** — substituído placeholder `seu-usuario` pela URL real `https://github.com/nicholasrichardsonsecurity/loopclub-enterprise.git` em INSTALLATION.md e README.md.
+- **Documentação: nome da pasta corrigido** — de `loopclub_enterprise_sprint01` para `loopclub-enterprise` em README.md e INSTALLATION.md.
+- **Documentação: desenvolvimento.** — afirmação incorreta de que "consultas sempre filtram por companyId" corrigida para "DEVEM filtrar — implementação pendente".
+- **Documentação: .env.example duplicado removido** — `.env.example` da raiz removido; `backend/.env.example` definido como oficial e atualizado com variáveis faltantes (QR_TOKEN_SECRET, QR_TOKEN_EXPIRES_IN_SECONDS) e linhas de bloco markdown removidas.
+- **Documentação: STATUS.md** — conexão Prisma/PostgreSQL atualizada de "pendente" para "validado manualmente" (banco real usado nos testes).
 
 ## [0.1.0] — 2026-06-26
 

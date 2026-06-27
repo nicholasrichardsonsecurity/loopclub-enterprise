@@ -156,6 +156,20 @@ graph TB
 
 > **Implementado:** JWT AuthGuard com `@Public()`, RolesGuard com `@Roles()` (admin, company_owner, employee, client). **Pendente:** validação de tenant, rate limiting, audit log. **Planejado:** módulo Payments (gateway desacoplado), Nfse (provedor fiscal substituível), PushNotifications (auditável), Reports (exportação contábil).
 
+## Padrões brasileiros — requisito transversal
+
+O LoopClub Enterprise é desenvolvido exclusivamente para o mercado brasileiro. As decisões arquiteturais abaixo refletem esse compromisso:
+
+- **Idioma:** pt-BR em todas as interfaces de usuário, e-mails, SMS, push notifications e documentos gerados. Código-fonte e logs internos podem usar inglês técnico.
+- **Moeda:** Real (R$). Armazenamento em `Decimal` ou centavos. Formatação pt-BR na apresentação.
+- **Datas:** ISO 8601 em APIs e armazenamento (UTC). Conversão para America/Recife na exibição. Nunca armazenar DD/MM/AAAA no banco.
+- **Documentos fiscais:** CPF (11 dígitos), CNPJ (14 dígitos). Armazenar apenas números. Validar dígitos verificadores. Máscara na interface.
+- **Telefones:** Padrão brasileiro com DDD. Armazenar normalizado (apenas números). E.164 para integrações externas.
+- **CEP:** 8 dígitos. Armazenar apenas números. Preparar integração ViaCEP.
+- **Endereço:** Logradouro, número, complemento, bairro, município, UF, CEP — modelo brasileiro.
+
+> Consulte [PRODUCT.md](PRODUCT.md) para a especificação completa dos padrões brasileiros e [DECISIONS.md](DECISIONS.md) (ADR-017) para a decisão arquitetural.
+
 ## Documentos de arquitetura relacionados
 
 - [LGPD.md](LGPD.md) — Adequação à LGPD e privacy by design
