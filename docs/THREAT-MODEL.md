@@ -197,7 +197,7 @@
 | **Impacto** | Credenciais expostas a todos com acesso ao repositório |
 | **Probabilidade** | Baixa |
 | **Severidade** | Crítica |
-| **Mitigação atual** | `.gitignore` bloqueia `.env` e `.env.*`; `.env.example` tem apenas valores fictícios |
+| **Mitigação atual** | `.gitignore` bloqueia `.env` e `.env.*`; `.env.example` com valores fictícios e avisos de segurança. `seed.ts` não contém senha fixa — lê de `RBAC_SEED_PASSWORD` (variável de ambiente). Seed bloqueado por padrão — permitido apenas com `NODE_ENV=development` ou `test`. |
 | **Mitigação pendente** | Scanner de segredos no CI (ex.: truffleHog, git-secrets) |
 
 ### T16 — Erro humano
@@ -209,7 +209,7 @@
 | **Impacto** | Perda de dados, exposição, indisponibilidade |
 | **Probabilidade** | Média |
 | **Severidade** | Alta |
-| **Mitigação atual** | Nenhuma |
+| **Mitigação atual** | Seed bloqueado por padrão — permitido exclusivamente com `NODE_ENV=development` ou `test`. `seed.ts` sem senha fixa no código. Upsert não altera dados existentes. |
 | **Mitigação pendente** | Princípio do menor privilégio; approvals em operações sensíveis; backup testado; rollback de migrações |
 
 ---

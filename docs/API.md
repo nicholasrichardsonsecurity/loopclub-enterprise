@@ -54,13 +54,12 @@ Authorization: Bearer <token>
 {
   "name": "Nome do usuário",
   "email": "email@exemplo.com",
-  "phone": "11999999999",
-  "password": "senha123",
-  "role": "client"
+  "password": "senha123"
 }
 ```
 
-**Roles válidas:** `admin`, `company_owner`, `employee`, `client`
+**Campos aceitos:** apenas `name`, `email` e `password`.  
+**Segurança:** `role`, `phone`, `status`, `companyId` e `permissions` são rejeitados com HTTP 400. Todo cadastro público cria perfil `client`.
 
 **Resposta (201 - sucesso):**
 ```json
@@ -203,7 +202,7 @@ Authorization: Bearer <token>
 
 ## Observações de segurança
 
-- **Validação:** DTOs validam tipos, campos obrigatórios e formato de e-mail
+- **Validação:** DTOs validam tipos, campos obrigatórios e formato de e-mail. `ValidationPipe` global com `whitelist: true, forbidNonWhitelisted: true` — campos não declarados no DTO são rejeitados com HTTP 400
 - **Erros:** Respostas seguem padrão NestJS com status code e mensagem
 - **CORS:** Habilitado para desenvolvimento local
 - **Senhas:** Hash bcrypt com 10 rounds

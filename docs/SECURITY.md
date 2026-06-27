@@ -25,6 +25,7 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
 
 ### Infraestrutura de desenvolvimento
 - **Segredos:** `.env` bloqueado pelo `.gitignore`; `.env.example` com valores fictícios
+- **Seed protegido:** `prisma/seed.ts` com allowlist de ambientes — permitido exclusivamente com `NODE_ENV=development` ou `NODE_ENV=test`. Qualquer outro valor (production, staging, ausente, inválido) bloqueia imediatamente com erro claro. Senha lida exclusivamente da variável `RBAC_SEED_PASSWORD`. Upsert com `update: {}` — não altera nenhum dado de usuários existentes. Nenhum token, senha, hash ou JWT_SECRET é exibido nos logs. `RBAC_SEED_PASSWORD` documentada no `.env.example` com aviso de uso exclusivo local.
 
 ### Banco e ORM
 - **Prevenção SQL injection:** Prisma ORM usa queries parametrizadas

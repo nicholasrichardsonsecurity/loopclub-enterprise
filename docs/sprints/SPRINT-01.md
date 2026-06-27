@@ -43,6 +43,7 @@ Criar a base técnica e executável do LoopClub Enterprise, com monorepo organiz
 23. JwtStrategy + JwtAuthGuard implementados: users e companies protegidos com JWT Bearer; auth público via `@Public()`
 24. RolesGuard + @Roles implementados: matriz de permissões (admin, company_owner, employee, client) aplicada a users e companies
 25. **Correção de segurança crítica:** `POST /auth/register` não aceita mais `role`, `status`, `companyId`, `permissions` ou `phone` no body. `ValidationPipe` global com `forbidNonWhitelisted: true`. Service força `role: "client"` internamente. Swagger atualizado.
+26. **Correção de segurança do seed:** `prisma/seed.ts` — senha fixa removida do código. Seed lê `RBAC_SEED_PASSWORD` de variável de ambiente. Allowlist de ambientes: permitido exclusivamente com `NODE_ENV=development` ou `test` (production, staging, ausente ou inválido bloqueiam). Upsert com `update: {}` — não altera nenhum dado de usuários existentes. Nenhum segredo nos logs. Idempotente.
 
 ## Critérios de aceite
 

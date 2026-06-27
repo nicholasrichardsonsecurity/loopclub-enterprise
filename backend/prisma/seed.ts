@@ -1,49 +1,41 @@
 import { PrismaClient, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
+// Trava de segurança: seed permitido exclusivamente em development ou test.
+const allowedEnvironments = ['development', 'test'];
+
+if (!allowedEnvironments.includes(process.env.NODE_ENV ?? '')) {
+  console.error('[Seed] ERRO: seed permitido somente com NODE_ENV=development ou NODE_ENV=test.');
+  process.exit(1);
+}
+
 const prisma = new PrismaClient();
 
-const SEED_USERS = [
-  {
-    name: 'Admin Teste',
-    email: 'admin.rbac@loopclub.dev',
-    role: UserRole.admin,
-    password: 'SenhaTeste@123',
-  },
-  {
-    name: 'Owner Teste',
-    email: 'owner.rbac@loopclub.dev',
-    role: UserRole.company_owner,
-    password: 'SenhaTeste@123',
-  },
-  {
-    name: 'Employee Teste',
-    email: 'employee.rbac@loopclub.dev',
-    role: UserRole.employee,
-    password: 'SenhaTeste@123',
-  },
-  {
-    name: 'Client Teste',
-    email: 'client.rbac@loopclub.dev',
-    role: UserRole.client,
-    password: 'SenhaTeste@123',
-  },
+const SEED_USERS: { name: string; email: string; role: UserRole }[] = [
+  { name: 'Admin Teste',    email: 'admin.rbac@loopclub.dev',    role: UserRole.admin },
+  { name: 'Owner Teste',    email: 'owner.rbac@loopclub.dev',    role: UserRole.company_owner },
+  { name: 'Employee Teste', email: 'employee.rbac@loopclub.dev', role: UserRole.employee },
+  { name: 'Client Teste',   email: 'client.rbac@loopclub.dev',   role: UserRole.client },
 ];
 
 async function main() {
+  const seedPassword = process.env.RBAC_SEED_PASSWORD;
+  if (!seedPassword) {
+    console.error('[Seed] ERRO: Variável RBAC_SEED_PASSWORD não definida.');
+    console.error('[Seed] Defina RBAC_SEED_PASSWORD no .env para uso local de desenvolvimento.');
+    console.error('[Seed] Aviso: nunca reutilize esta senha em produção.');
+    process.exit(1);
+  }
+
   console.log('[Seed] Iniciando seed de desenvolvimento RBAC...');
+  console.log('[Seed] Modo:', process.env.NODE_ENV);
+
+  const passwordHash = await bcrypt.hash(seedPassword, 10);
 
   for (const user of SEED_USERS) {
-    const passwordHash = await bcrypt.hash(user.password, 10);
-
     const result = await prisma.user.upsert({
       where: { email: user.email },
-      update: {
-        name: user.name,
-        role: user.role,
-        passwordHash,
-        status: 'active',
-      },
+      update: {},
       create: {
         name: user.name,
         email: user.email,

@@ -117,7 +117,8 @@ Atualizado em: 26/06/2026
 - [ ] Validação de token expirado — pendente de teste específico
 - [ ] Refresh token com rotação e revogação
 - [ ] Vincular CompanyUser no registro (criar vínculo empresa-usuário)
-- [ ] Seed inicial (Admin Master padrão)
+- [x] **Seed local para testes de RBAC** — `implementado` e `validado`. Cria usuários fictícios dos perfis admin, company_owner, employee e client somente em ambientes development ou test. Senha lida de `RBAC_SEED_PASSWORD` (variável de ambiente — nunca no código). Allowlist bloqueia production, staging, ausente ou inválido. Upsert com `update: {}` não altera usuários existentes. Nenhum segredo (senha, hash, token, JWT_SECRET) é exibido nos logs. Idempotente.
+- [x] **Segurança do POST /auth/register** — `validado manualmente`. DTO público aceita apenas name, email, password. Service força `role: 'client'`. `ValidationPipe` global com `forbidNonWhitelisted: true` rejeita role, status, companyId, permissions, phone com HTTP 400.
 - [ ] Rate limiting em rotas de autenticação
 - [ ] Sanitização de logs (Interceptor NestJS)
 - [ ] Registro de auditoria para ações críticas (AuditLog)
