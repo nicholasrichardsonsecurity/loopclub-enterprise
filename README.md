@@ -160,8 +160,8 @@ loopclub_enterprise_sprint01/
 ### Backend (API)
 
 ```powershell
-git clone <repo-url>
-cd loopclub_enterprise_sprint01/backend
+git clone https://github.com/nicholasrichardsonsecurity/loopclub-enterprise.git
+cd loopclub-enterprise/backend
 npm install
 Copy-Item .env.example .env
 # Edite DATABASE_URL, JWT_SECRET e CORS_ORIGIN no .env
