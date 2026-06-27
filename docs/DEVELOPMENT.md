@@ -107,6 +107,50 @@ docker compose down              # Parar tudo
 
 Mantenha o arquivo `.env.example` atualizado com as novas variáveis. Valores reais nunca devem ser versionados.
 
+## Padrões brasileiros — regras obrigatórias de desenvolvimento (planejado)
+
+O LoopClub Enterprise atende exclusivamente o mercado brasileiro. As regras abaixo são requisitos aprovados que devem ser observados em **todo código novo**. Nenhuma dessas validações ou formatadores está implementada atualmente — bibliotecas, funções utilitárias e interceptadores mencionados são sugestões para implementação futura, não dependências existentes.
+
+### Datas
+- Armazenar em UTC (ISO 8601). `DateTime` do Prisma — já é o comportamento atual.
+- Converter para America/Recife na exibição. **Pendente:** nenhuma conversão de timezone está implementada. Sugestão: `date-fns-tz` ou `Intl.DateTimeFormat` com timezone para implementação futura.
+- Nunca armazenar DD/MM/AAAA no banco — já é prática válida (nenhuma data é armazenada como string).
+- APIs aceitam/retornam ISO 8601 UTC — já é o comportamento atual.
+
+### Valores monetários
+- Usar `Decimal` no Prisma — já implementado em `Plan.price` e `Subscription.price`.
+- Nunca usar `float` para moeda — prática já seguida.
+- Formatação pt-BR exclusivamente no frontend — **pendente** (nenhum frontend aplica formatação `R$` atualmente).
+- Sugestão: `Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })` para implementação futura.
+
+### CPF e CNPJ — planejado, não implementado
+- Validar dígitos verificadores no backend. **Pendente:** implementar função reutilizável de validação.
+- Armazenar apenas números (11 dígitos CPF, 14 dígitos CNPJ).
+- Impedir duplicidade com `@unique` no schema quando couber.
+- Não logar documentos completos.
+- **Estado atual:** não há campos de CPF ou CNPJ no schema, DTOs ou serviços.
+
+### Telefones — planejado, não implementado
+- Armazenar apenas números com DDD (mínimo 10 dígitos).
+- Validar no backend: DDD (11-99) e quantidade de dígitos.
+- **Estado atual:** `phone` aceita string livre sem validação de formato brasileiro.
+
+### CEP — planejado, não implementado
+- Armazenar 8 dígitos numéricos. **Pendente:** validação e campo no schema.
+- Preparar integração futura com ViaCEP.
+
+### Endereço — planejado, não implementado
+- Modelo obrigatório: logradouro, número, complemento (opcional), bairro, município, UF (2 chars), CEP.
+- UF: sigla maiúscula de 2 caracteres (AC a TO).
+
+### Interface — em evolução
+- Todos os textos visíveis ao usuário em pt-BR: mensagens de erro, validações, e-mails, SMS, push.
+- **Estado atual:** as mensagens de erro da API (ValidationPipe do NestJS) já estão em português. As interfaces admin-web e mobile precisam ser verificadas e ajustadas.
+- Nomes de variáveis, logs de sistema e comentários técnicos podem ficar em inglês.
+
+### Validação
+- CPF, CNPJ e CEP devem ser validados no backend. **Pendente:** implementar validadores customizados com `class-validator`. A validação no frontend é adicional, nunca substituta.
+
 ## Checklist de desenvolvimento
 
 Antes de finalizar qualquer tarefa:

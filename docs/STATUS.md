@@ -153,6 +153,25 @@ A matriz RBAC foi validada manualmente via `curl` contra todos os 4 perfis (admi
 - [ ] **Validar conexão Prisma** — `prisma migrate dev` não foi reexecutado para confirmar consistência.
 - [ ] **Testes automatizados** — 0 arquivos `.spec.ts` no projeto (excluindo `node_modules`).
 
+### Requisitos transversais (permanentes)
+
+- [ ] **Padrões brasileiros — requisito transversal documentado.** `documentado`. Todos os padrões de apresentação, armazenamento, validação e integração foram formalizados em PRODUCT.md, ARCHITECTURE.md, DATABASE.md, API.md, DEVELOPMENT.md, LGPD.md, SECURITY.md e DECISIONS.md (ADR-017). **Nenhum controle foi implementado no código.**
+
+### Requisitos brasileiros
+
+| Item | Situação |
+|------|----------|
+| Português do Brasil como idioma padrão | Requisito aprovado e documentado. Implementação completa pendente (telas, mensagens de erro, e-mails, push não foram verificados). |
+| Real brasileiro (R$) | Requisito aprovado e documentado. Implementação completa pendente (formatação pt-BR em interfaces não implementada). |
+| Datas em DD/MM/AAAA | Requisito aprovado e documentado. Implementação completa pendente (conversão UTC → America/Recife em exibição não implementada). |
+| Horário em formato de 24 horas | Requisito aprovado e documentado. Implementação completa pendente. |
+| Timezone America/Recife | Requisito aprovado e documentado. Configuração técnica pendente ou parcial — timezone não é aplicado atualmente em exibição de datas. |
+| Telefone brasileiro com DDD | Requisito aprovado e documentado. Implementação e validação pendentes (campo `phone` existe no schema mas sem validação de DDD ou formato brasileiro). |
+| CPF | Requisito aprovado e documentado. Implementação, validação de dígitos verificadores e testes pendentes. |
+| CNPJ | Requisito aprovado e documentado. Implementação, validação de dígitos verificadores e testes pendentes. |
+| CEP e endereço brasileiro | Requisito aprovado e documentado. Implementação e validação pendentes (schema não possui campos de endereço brasileiro ainda). |
+| Interface integralmente em português do Brasil | Em evolução — código-fonte usa inglês técnico, o que é aceitável. Telas do admin-web e mobile precisam ser verificadas quanto a textos em português. Mensagens de erro da API estão em português (validação do NestJS). |
+
 ### Próximos itens a implementar (Sprint 02)
 
 - [x] Guardas JWT (JwtAuthGuard) em users e companies — `implementado e validado`

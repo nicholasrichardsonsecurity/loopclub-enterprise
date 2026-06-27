@@ -117,6 +117,19 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
 - Em produção, usar SSL na conexão PostgreSQL
 - Backups criptografados com acesso restrito
 
+### Padrões brasileiros — segurança de dados (planejado)
+
+O produto atende exclusivamente o mercado brasileiro. As regras abaixo são requisitos aprovados de segurança e privacidade. **Nenhuma destas proteções está implementada no código atual.**
+
+- **Minimização:** coletar CPF/CNPJ apenas quando houver finalidade específica (ex.: NFS-e exige CPF/CNPJ do tomador). Não coletar por padrão. — **não implementado:** não há coleta de CPF/CNPJ atualmente.
+- **Armazenamento:** CPF, CNPJ, telefone e CEP armazenados apenas como números (sem máscara, sem formatação). — **não implementado:** campo `phone` aceita string livre sem normalização.
+- **Validação:** CPF e CNPJ devem ter dígitos verificadores validados no backend antes de persistir. — **pendente:** nenhum validador de CPF/CNPJ existe.
+- **Logs:** nunca registrar CPF ou CNPJ completos em logs de aplicação. — **pendente:** não há sanitização de logs implementada.
+- **Exposição em API:** retornar CPF/CNPJ apenas em endpoints com finalidade comprovada. — **pendente:** não há campos de CPF/CNPJ na API atualmente.
+- **Interface:** mascarar parcialmente quando possível. — **pendente:** nenhum mascaramento implementado.
+- **Retenção:** CPF/CNPJ devem seguir prazo de retenção fiscal (5 anos). — **pendente:** nenhum job de retenção implementado.
+- **CEP e endereço:** CEP sozinho não é dado pessoal, mas endereço completo sim. — **pendente:** campos de endereço não existem no schema.
+
 ### Código
 
 - Nunca hardcodar senhas, tokens ou chaves de API

@@ -231,3 +231,27 @@ Este documento registra as principais decisões arquiteturais do projeto, usando
 **Consequências:**
 - Positivas: perfil seguro (vem do JWT, não do frontend); 403 claro para perfil sem acesso; decorator simples de aplicar em novas rotas; princípio do menor privilégio aplicado
 - Negativas: ainda não há validação de companyId (qualquer admin vê dados de todas as empresas); precisa lembrar de adicionar `@Roles()` em cada novo endpoint protegido
+
+---
+
+## ADR-017 — Padrões brasileiros como requisito transversal permanente
+
+**Status:** Aceito
+
+**Contexto:** O LoopClub Enterprise atende exclusivamente o mercado brasileiro. Era necessário formalizar que todos os padrões de apresentação, armazenamento, validação e integração devem seguir normas brasileiras — e não assumir padrões internacionais como default.
+
+**Decisão:** Estabelecer como requisito transversal permanente que todo o produto segue padrões brasileiros. Nenhuma funcionalidade, interface, API ou integração deve assumir formato internacional como padrão sem validação explícita. Os padrões são:
+
+- **Idioma:** português do Brasil (pt-BR) em toda interface de usuário
+- **Moeda:** Real brasileiro (R$). Armazenamento em `Decimal` ou centavos. Formatação pt-BR na apresentação.
+- **Datas:** ISO 8601 UTC no armazenamento e APIs. DD/MM/AAAA e fuso America/Recife na exibição.
+- **Horários:** Formato 24 horas.
+- **Documentos:** CPF (11 dígitos) e CNPJ (14 dígitos). Armazenar apenas números. Validar dígitos verificadores.
+- **Telefones:** Padrão brasileiro com DDD. E.164 para integrações.
+- **CEP:** 8 dígitos numéricos.
+- **Endereço:** Logradouro, número, complemento, bairro, município, UF, CEP.
+
+**Consequências:**
+- Positivas: clareza para novos desenvolvedores sobre os padrões esperados; consistência entre backend, frontend mobile e frontend web; documentação unificada
+- Negativas: CPF, CNPJ e formatos regionais adicionam complexidade de validação; timezone America/Recife pode não ser adequado para todos os clientes (mantida possibilidade de configuração futura); CEP requer integração com API externa (ViaCEP) para auto-preenchimento
+- Riscos: esquecer de validar dígitos verificadores de CPF/CNPJ no backend (não apenas no frontend); expor documentos completos em logs ou respostas de API sem necessidade

@@ -99,6 +99,74 @@ O LoopClub é uma plataforma SaaS multiempresa de fidelização e retenção de 
 - Multi-tenant nativo: dados isolados por `companyId`
 - Flexível para pequenos negócios: planos simples e gestão manual
 
+## Mercado e padrões brasileiros
+
+O LoopClub Enterprise é desenvolvido exclusivamente para o mercado brasileiro. Todos os padrões de apresentação, validação e armazenamento seguem as normas e formatos nacionais.
+
+**Este é um requisito transversal e permanente do produto.** Nenhuma funcionalidade, interface ou integração deve assumir padrão internacional como padrão — o ponto de partida é sempre o Brasil.
+
+### Padrões obrigatórios
+
+| Aspecto | Padrão |
+|---------|--------|
+| Idioma padrão | Português do Brasil (pt-BR) |
+| Moeda | Real brasileiro (R$ 1.234,56) |
+| Data | DD/MM/AAAA |
+| Horário | Formato 24 horas |
+| Timezone inicial | America/Recife (configurável por empresa no futuro) |
+| Telefone | Brasileiro com DDD (celular e fixo) |
+| Documentos | CPF (11 dígitos) e CNPJ (14 dígitos) |
+| CEP | 00000-000 |
+| Endereço | Logradouro, número, complemento, bairro, município, UF, CEP |
+
+### Regras técnicas por tipo de dado
+
+#### Datas
+- Armazenar internamente em UTC (ISO 8601)
+- Converter para o timezone configurado apenas na exibição
+- Nunca armazenar datas formatadas como DD/MM/AAAA no banco de dados
+- Operações de relatório, filtro e API devem aceitar/enviar datas em ISO, exceto quando a interface do usuário exigir formato local
+
+#### Valores monetários
+- Nunca usar float para valores financeiros
+- Usar `Decimal` do Prisma/PostgreSQL ou inteiros em centavos no armazenamento
+- Formatação pt-BR (R$ 1.234,56) aplicada exclusivamente na camada de apresentação
+- Cálculos e operações devem usar o tipo nativo (Decimal), não strings formatadas
+
+#### CPF e CNPJ
+- Validar dígitos verificadores no backend (regra de negócio, não apenas no frontend)
+- Armazenar normalizados, preferencialmente apenas números (sem pontos, traços ou barras)
+- Aplicar máscara na interface do usuário (XXX.XXX.XXX-XX e XX.XXX.XXX/XXXX-XX)
+- Impedir duplicidade quando aplicável (CPF único por usuário, CNPJ único por empresa)
+- Evitar exposição completa em logs, telas sem necessidade ou respostas de API sem justificativa
+- Mascarar parcialmente quando possível (ex.: XXX.XXX.XXX-00)
+
+#### Telefones
+- Armazenar normalizados, apenas números
+- Aceitar DDD obrigatório (2 dígitos)
+- Preparar diferenciação entre celular (9 dígitos) e fixo (8 dígitos)
+- Exibir no padrão brasileiro: (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+- Considerar formato E.164 para integrações externas (+5521XXXXXXXXX)
+
+#### CEP
+- Armazenar apenas números (8 dígitos)
+- Exibir como 00000-000
+- Preparar futura integração com API de consulta de CEP (ex.: ViaCEP)
+- Permitir correção manual do endereço após preenchimento automático
+- Considerar CEP como dado facultativo na base, mas obrigatório para NFS-e
+
+#### Interface do usuário
+- Todos os textos, botões, mensagens de erro, validações, e-mails, SMS, push notifications e documentos gerados devem estar em português do Brasil
+- Não deixar textos em inglês visíveis ao usuário final
+- Termos técnicos internos (nomes de variáveis, chaves de API, logs de sistema) podem permanecer em inglês no código
+
+#### Segurança e LGPD
+- CPF, CNPJ, telefone e endereço completo são dados pessoais nos termos da LGPD
+- Seguir o princípio da minimização: coletar apenas quando houver finalidade específica
+- Não registrar documentos completos (CPF, CNPJ) em logs de aplicação
+- Mascarar dados sensíveis em telas e relatórios quando possível
+- Definir finalidade e prazo de retenção para cada dado pessoal brasileiro antes de implementar a coleta
+
 ## Observações fiscais e tributárias
 
 - **NFS-e é o documento fiscal previsto.** O LoopClub emite Nota Fiscal de Serviço (NFS-e) para as assinaturas e serviços prestados. A implementação está sujeita a validação contábil e às regras municipais de cada prestador.

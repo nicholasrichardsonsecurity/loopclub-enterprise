@@ -32,8 +32,10 @@ Aplica-se a todo tratamento de dados pessoais realizado pela plataforma LoopClub
 
 ### Dados de identificação
 - Nome
-- Telefone
+- Telefone (padrão brasileiro com DDD)
 - E-mail
+- CPF (11 dígitos, armazenado apenas números)
+- CNPJ (14 dígitos, armazenado apenas números — empresas)
 - Senha (armazenada como hash bcrypt)
 - Role / perfil de acesso
 
@@ -58,6 +60,11 @@ Aplica-se a todo tratamento de dados pessoais realizado pela plataforma LoopClub
 - QR Code tokens (hash)
 - Logs de acesso e ações
 
+### Dados de endereço (futuros)
+- Logradouro, número, complemento, bairro, município, UF, CEP — modelo brasileiro
+- CEP (8 dígitos, armazenado apenas números)
+- UF (sigla de 2 caracteres)
+
 ### Dados técnicos (futuros)
 - Dados de dispositivo
 - Endereço IP
@@ -68,7 +75,8 @@ Aplica-se a todo tratamento de dados pessoais realizado pela plataforma LoopClub
 
 | Finalidade | Dados | Base legal proposta |
 |------------|-------|---------------------|
-| Cadastro e identificação do usuário | Nome, e-mail, telefone, role | Execução de contrato (art. 7º, V) |
+| Cadastro e identificação do usuário | Nome, e-mail, telefone, CPF, role | Execução de contrato (art. 7º, V) |
+| Cadastro de empresa (CNPJ) | CNPJ, dados do proprietário, endereço | Obrigação legal (art. 7º, II) — NFS-e e legislação fiscal |
 | Autenticação e segurança | E-mail, senha hash, tokens | Legítimo interesse (art. 7º, IX) |
 | Gestão de empresas | Dados do proprietário, CNPJ | Execução de contrato (art. 7º, V) |
 | Programa de fidelidade | Pontos, transações, histórico | Execução de contrato (art. 7º, V) |
