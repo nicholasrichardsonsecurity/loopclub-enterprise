@@ -55,9 +55,9 @@ Empresa cliente da plataforma.
 | primaryColor | String | Cor primária (#6F13A5) |
 | secondaryColor | String | Cor secundária (#CF00FF) |
 
-### CompanyUser
+### CompanyUser — Fonte oficial de vínculo de tenant
 
-Vínculo entre usuário e empresa.
+Vínculo entre usuário e empresa. É a única fonte autorizada para determinar o contexto empresarial de um usuário. Não há `companyId` diretamente no model `User` nem no payload do JWT.
 
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
@@ -68,6 +68,15 @@ Vínculo entre usuário e empresa.
 | status | UserStatus | active, blocked, deleted |
 
 **Restrição:** único por par (companyId, userId).
+
+**Regras de validação no MVP:**
+- No máximo um vínculo ativo por usuário (validado pela aplicação, não por constraint no banco).
+- Múltiplos vínculos ativos: erro controlado (403) + log interno de inconsistência.
+- Vínculo inativo ou empresa inativa: 403.
+- Papéis empresariais (CompanyUserRole): `owner` (para company_owner), `employee` (para employee). `manager` sem permissões definidas nesta etapa.
+- Coerência obrigatória: `User.role = company_owner` exige `CompanyUser.role = owner`; `User.role = employee` exige `CompanyUser.role = employee`.
+- `Company.document` é usado como chave única do seed para upsert idempotente de empresas.
+- **Schema e migrations:** nenhuma alteração foi necessária para a primeira camada de isolamento. O model CompanyUser já existia e foi utilizado como fonte de tenant.
 
 ### Plan
 
@@ -264,4 +273,5 @@ O produto atende exclusivamente o mercado brasileiro. As regras abaixo são requ
 - Todas as chaves primárias usam UUID
 - Timestamps automáticos com `@default(now())` e `@updatedAt`
 - Índices criados nas FKs e campos de busca frequente (companyId, clientId, createdAt)
-- Multi-tenancy por `companyId` — toda consulta deve filtrar pela empresa
+- Multi-tenancy por `companyId` — toda consulta deve filtrar pela empresa. Implementado no GET /companies via TenantGuard + CompanyUser. Demais rotas pendentes.
+- PrismaModule global (@Global) registrado no AppModule — elimina instâncias duplicadas de PrismaService.

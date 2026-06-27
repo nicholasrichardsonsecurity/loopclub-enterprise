@@ -1,14 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { CompanyStatus } from '@prisma/client';
+import { CompanyStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
+import { JwtUser } from '../auth/strategies/jwt.strategy';
 
 @Injectable()
 export class CompaniesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.company.findMany({ orderBy: { createdAt: 'desc' } });
+  findAll(user: JwtUser) {
+    const where =
+      user.role === UserRole.admin
+        ? {}
+        : { id: user.companyId };
+
+    return this.prisma.company.findMany({ where, orderBy: { createdAt: 'desc' } });
   }
 
   create(dto: CreateCompanyDto) {

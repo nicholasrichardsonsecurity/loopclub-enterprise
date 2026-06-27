@@ -98,7 +98,59 @@ Dashboard administrativo com layout de sidebar. Atualmente contém:
 
 O isolamento entre empresas é feito por `companyId`. Cada registro sensível (progresso, transações, programas) referencia a empresa proprietária. Consultas devem sempre filtrar por `companyId` para evitar vazamento de dados entre tenants.
 
-> **Aviso:** A validação de tenant isolation ainda não está implementada. Nenhum endpoint atual verifica se o usuário pertence à empresa que está acessando.
+### Fonte oficial de vínculo
+
+O vínculo entre usuário e empresa é estabelecido exclusivamente pela tabela `CompanyUser` (N:N). Não há `companyId` diretamente no model `User` nem no payload do JWT.
+
+### Fluxo de autorização com tenant
+
+```
+Requisição HTTP
+  ↓
+[1] JwtAuthGuard — autenticação
+     Valida JWT, extrai sub e role para request.user
+  ↓
+[2] RolesGuard — autorização global (RBAC)
+     Verifica user.role contra @Roles() da rota
+     Sem consulta ao banco
+  ↓
+[3] TenantGuard — somente em rotas com @RequireCompany()
+     Lê metadata do decorator
+     Se rota exige tenant → TenantService.resolveTenant():
+       ├─ admin → null (sem companyId obrigatório)
+       ├─ company_owner/employee →
+       │    ├─ 0 CompanyUser ativo → 403
+       │    ├─ 2+ CompanyUser ativos → 403 + log interno
+       │    ├─ 1 vínculo + empresa inativa → 403
+       │    ├─ 1 vínculo + incoerência de papéis → 403
+       │    └─ 1 vínculo válido → injeta companyId + companyRole
+       └─ client → não chega (bloqueado pelo RolesGuard)
+     Se rota não exige tenant → não consulta banco
+  ↓
+[4] Controller → Service
+     Usa request.user.companyId para filtrar/queries
+     Nunca confia em companyId vindo do body, query ou params
+```
+
+### Responsabilidades das camadas
+
+| Camada | Guard/Service | Responsabilidade |
+|--------|---------------|------------------|
+| Autenticação | `JwtAuthGuard` + `JwtStrategy` | Validar JWT, extrair sub/role. Apenas `{ userId, role }` no request.user. |
+| Autorização global | `RolesGuard` | Verificar user.role contra perfis permitidos pela rota. Sem consulta ao banco. |
+| Contexto empresarial | `TenantGuard` + `TenantService` | Consultar CompanyUser ativo, validar empresa, validar coerência, injetar companyId/companyRole. Só ativo se a rota tiver `@RequireCompany()`. |
+| Filtro de dados | Service | Filtrar consultas pelo companyId validado (request.user.companyId). |
+
+### Regras do MVP
+
+- No máximo um vínculo empresarial ativo por usuário.
+- Usuário sem vínculo ativo recebe 403 em rotas empresariais.
+- Usuário com múltiplos vínculos ativos recebe erro controlado (sem escolher empresa automaticamente).
+- Admin global não exige companyId — acesso irrestrito a dados de todas as empresas.
+- CompanyId nunca vem do JWT, do body, da query ou de parâmetros de rota. Vem exclusivamente do contexto autenticado e validado.
+- Recursos de outro tenant retornam preferencialmente 404 (em rotas com identificador, futuras).
+
+> **Implementado:** primeira camada de isolamento aplicada ao GET /companies. Infraestrutura reutilizável (TenantModule, TenantService, TenantGuard) disponível para demais módulos. **Pendente:** estender para demais rotas e módulos, AuditLog para inconsistências, permissões para CompanyUserRole.manager, cache de tenant.
 
 ## Arquitetura de segurança (atual vs. planejada)
 
@@ -108,23 +160,27 @@ graph TB
         REQ[Requisição HTTP]
     end
 
-    subgraph "Camada de Segurança — Implementada"
+    subgraph "Camada de Autenticação"
         JWT_GUARD[JwtAuthGuard<br/>valida token JWT]
         PUBLIC[Decorator @Public()<br/>marca rotas públicas]
     end
 
-    subgraph "Camada de Segurança — Implementada"
+    subgraph "Camada de Autorização Global"
         RBAC[RolesGuard<br/>valida perfil do usuário]
     end
 
+    subgraph "Camada de Contexto Empresarial"
+        TENANT_GUARD[TenantGuard<br/>ativa se @RequireCompany()]
+        TENANT_SVC[TenantService<br/>consulta CompanyUser<br/>valida vínculo e empresa<br/>injeta companyId]
+    end
+
     subgraph "Camada de Segurança — Planejada"
-        TENANT[Tenant Validation]
         RATE[Rate Limiter]
     end
 
     subgraph "Camada de Negócio"
         CTRL[Controller]
-        SRV[Service]
+        SRV[Service<br/>filtra por companyId]
         AUDIT[AuditLog]
     end
 
@@ -136,9 +192,12 @@ graph TB
     REQ --> JWT_GUARD
     JWT_GUARD -->|rota pública| CTRL
     JWT_GUARD -->|rota protegida| RBAC
-    RBAC -->|autorizado| CTRL
-    RBAC -->|sem permissão| FIM[HTTP 403]
-    CTRL --> SRV
+    RBAC -->|sem permissão| FIM1[HTTP 403]
+    RBAC -->|autorizado| TENANT_GUARD
+    TENANT_GUARD -->|rota sem @RequireCompany| CTRL
+    TENANT_GUARD -->|rota empresarial| TENANT_SVC
+    TENANT_SVC -->|0 vínculos / múltiplos / incoerente| FIM2[HTTP 403]
+    TENANT_SVC -->|vínculo válido<br/>+ empresa ativa| CTRL
     CTRL --> SRV
     SRV --> AUDIT
     SRV --> PRISMA
@@ -151,10 +210,16 @@ graph TB
 2. `JwtAuthGuard` verifica se a rota possui `@Public()` — se sim, libera sem validar token
 3. Se não for pública, `JwtStrategy` valida assinatura, expiração e payload (`sub`, `role`)
 4. Token inválido, ausente ou expirado → HTTP 401
-5. Token válido → `userId` e `role` disponíveis no `request.user` para o controller
-6. Rotas públicas: `GET /auth/health`, `POST /auth/register`, `POST /auth/login`
+5. Token válido → `{ userId, role }` no `request.user`
+6. `RolesGuard` verifica `user.role` contra os perfis permitidos pela rota → 403 se sem permissão
+7. Se a rota possui `@RequireCompany()`, `TenantGuard` ativa `TenantService.resolveTenant()`:
+   - Admin → sem companyId (acesso global)
+   - Company_owner/employee → busca CompanyUser ativo, valida empresa, injeta `companyId` + `companyRole`
+   - Zero/múltiplos vínculos → 403
+8. Controller e Service usam `request.user.companyId` para filtrar dados
+9. Rotas públicas: `GET /auth/health`, `POST /auth/register`, `POST /auth/login`
 
-> **Implementado:** JWT AuthGuard com `@Public()`, RolesGuard com `@Roles()` (admin, company_owner, employee, client). **Pendente:** validação de tenant, rate limiting, audit log. **Planejado:** módulo Payments (gateway desacoplado), Nfse (provedor fiscal substituível), PushNotifications (auditável), Reports (exportação contábil).
+> **Implementado:** JWT AuthGuard com `@Public()`, RolesGuard com `@Roles()` (admin, company_owner, employee, client), TenantGuard com `@RequireCompany()`, TenantService com validação de CompanyUser e coerência de papéis. **Pendente:** rate limiting, audit log, estender tenant isolation para demais módulos. **Planejado:** módulo Payments (gateway desacoplado), Nfse (provedor fiscal substituível), PushNotifications (auditável), Reports (exportação contábil).
 
 ## Padrões brasileiros — requisito transversal
 

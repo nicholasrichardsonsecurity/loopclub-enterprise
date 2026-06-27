@@ -132,7 +132,7 @@ Aplica-se a todo tratamento de dados pessoais realizado pela plataforma LoopClub
 - Rate limiting (especialmente em /auth/login)
 - HTTPS obrigatório
 - Sanitização de logs (remoção de dados sensíveis)
-- Validação de tenant isolation
+- Estender validação de tenant isolation para demais módulos (implementado parcialmente no GET /companies)
 - Refresh token com rotação
 - Registro de consentimento
 - Política de senha forte

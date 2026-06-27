@@ -2,6 +2,14 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { UserRole } from '@prisma/client';
+
+export interface JwtUser {
+  userId: string;
+  role: UserRole;
+  companyId?: string;
+  companyRole?: string;
+}
 
 interface JwtPayload {
   sub: string;
@@ -20,10 +28,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload): Promise<{ userId: string; role: string }> {
+  async validate(payload: JwtPayload): Promise<JwtUser> {
     if (!payload.sub || !payload.role) {
       throw new UnauthorizedException('Token inválido.');
     }
-    return { userId: payload.sub, role: payload.role };
+    return { userId: payload.sub, role: payload.role as UserRole };
   }
 }

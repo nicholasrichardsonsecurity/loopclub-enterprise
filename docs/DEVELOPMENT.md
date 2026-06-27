@@ -52,7 +52,25 @@ nest generate service modules/nome
 - Services contêm regras de negócio e acesso ao banco
 - DTOs usam `class-validator` para validação
 - Swagger decorators nos controllers para documentação automática
-- Consultas DEVEM sempre filtrar por `companyId` (multi-tenancy) — regra obrigatória de isolamento entre empresas. A implementação desta regra em todos os endpoints existentes ainda está pendente
+- Consultas DEVEM sempre filtrar por `companyId` (multi-tenancy) — regra obrigatória de isolamento entre empresas. Implementado no GET /companies via TenantGuard + CompanyUser. Demais endpoints pendentes.
+
+### Orientações para novas rotas empresariais
+
+Ao criar uma rota que acessa dados de uma empresa específica:
+
+1. **Autenticação:** adicionar `@UseGuards(JwtAuthGuard)` no controller ou no método.
+2. **RBAC:** adicionar `@Roles()` com os perfis permitidos.
+3. **Contexto empresarial:** adicionar `@RequireCompany()` no método. O TenantGuard resolverá o companyId do usuário autenticado e injetará em `request.user.companyId`.
+4. **Filtro no service:** usar exclusivamente `request.user.companyId` para filtrar consultas. Exemplo:
+   ```typescript
+   findAll(user: JwtUser) {
+     const where = user.role === UserRole.admin ? {} : { id: user.companyId };
+     return this.prisma.company.findMany({ where });
+   }
+   ```
+5. **Nunca aceitar companyId externo:** não confiar em `body.companyId`, `query.companyId` ou `params.companyId` como fonte de tenant. O companyId vem exclusivamente do contexto autenticado e validado pelo TenantService.
+6. **Recursos de outro tenant:** retornar HTTP 404 (não 403) para evitar confirmação de existência do recurso.
+7. **Testes de isolamento:** ao implementar uma rota empresarial, testar com dois tenants diferentes (ex.: Owner Alpha e Owner Beta) para confirmar que cada um vê apenas seus dados.
 
 ## Mobile (Flutter)
 

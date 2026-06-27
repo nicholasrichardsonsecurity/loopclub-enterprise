@@ -29,8 +29,8 @@
 | **Impacto** | Vazamento generalizado de dados, violação de isolamento multi-tenant |
 | **Probabilidade** | Média |
 | **Severidade** | Crítica |
-| **Mitigação atual** | Nenhuma — não há guardas de tenant isolation |
-| **Mitigação pendente** | Toda consulta deve filtrar por companyId extraído do token JWT; testes de tenant isolation |
+| **Mitigação atual** | **Implementado no GET /companies:** TenantGuard + TenantService consultam CompanyUser ativo, validam vínculo e empresa, injetam companyId no request.user. CompanyId nunca vem do JWT, body, query ou params. Admin vê todas; company_owner vê somente sua empresa. Zero vínculos, múltiplos vínculos e incoerência de papéis bloqueados com 403. 9 testes HTTP validados. |
+| **Mitigação pendente** | Estender tenant isolation para todas as rotas empresariais (programas, transações, progresso). Implementar GET /companies/:id com retorno 404 para recursos de outro tenant. AuditLog para inconsistências de tenant. |
 
 ### T02 — Enumeração de usuários
 
@@ -101,8 +101,8 @@
 | **Impacto** | Acesso não autorizado a dados |
 | **Probabilidade** | Alta |
 | **Severidade** | Alta |
-| **Mitigação atual** | RolesGuard com `@Roles('admin')` protege `PATCH /companies/:id/block` e `PATCH /companies/:id/unblock` — apenas admin pode executar. Matriz RBAC validada manualmente. Permissão por perfil verificada antes da operação. |
-| **Mitigação pendente** | Validar propriedade (companyId) e não apenas perfil — company_owner autêntico deve poder bloquear/desbloquear sua própria empresa. Isolamento multiempresa por companyId pendente. |
+| **Mitigação atual** | RolesGuard com `@Roles('admin')` protege `PATCH /companies/:id/block` e `PATCH /companies/:id/unblock` — apenas admin pode executar. Matriz RBAC validada manualmente. Permissão por perfil verificada antes da operação. **GET /companies:** mitigação IDOR parcial — companyId é derivado do contexto autenticado (TenantService), não de parâmetros da rota. |
+| **Mitigação pendente** | Implementar GET /companies/:id com validação de propriedade (companyId do tenant vs. companyId do recurso) e retorno 404 para recursos de outro tenant. Estender proteção para todas as rotas com parâmetros de ID. |
 
 ### T08 — SQL Injection
 

@@ -255,3 +255,27 @@ Este documento registra as principais decisões arquiteturais do projeto, usando
 - Positivas: clareza para novos desenvolvedores sobre os padrões esperados; consistência entre backend, frontend mobile e frontend web; documentação unificada
 - Negativas: CPF, CNPJ e formatos regionais adicionam complexidade de validação; timezone America/Recife pode não ser adequado para todos os clientes (mantida possibilidade de configuração futura); CEP requer integração com API externa (ViaCEP) para auto-preenchimento
 - Riscos: esquecer de validar dígitos verificadores de CPF/CNPJ no backend (não apenas no frontend); expor documentos completos em logs ou respostas de API sem necessidade
+
+---
+
+## ADR-018 — Multi-tenancy via CompanyUser com resolução em tempo de requisição
+
+**Status:** Aceito
+
+**Contexto:** O schema Prisma já possuía o model CompanyUser (N:N entre User e Company), mas ele nunca era populado nem utilizado. Era necessário implementar isolamento multiempresa sem alterar o schema, sem migration e sem colocar companyId no JWT.
+
+**Decisão:** Adotar CompanyUser como fonte oficial de tenant. O companyId é resolvido em tempo de requisição através de consulta ao banco (TenantService), nunca lido do JWT, body, query ou parâmetros de rota. O JWT permanece mínimo: apenas `sub` e `role`.
+
+**Detalhes da implementação:**
+- **TenantModule** com TenantService e TenantGuard, exportados para importação por outros módulos.
+- **TenantService.resolveTenant()** — consulta CompanyUser com status active, valida quantidade de vínculos (0, 1, múltiplos), valida Company.status, valida coerência User.role × CompanyUser.role.
+- **TenantGuard** — lê metadata `@RequireCompany()`. Só consulta banco se a rota exigir contexto empresarial.
+- **Decorator `@RequireCompany()`** — combina SetMetadata + UseGuards(TenantGuard) em um único decorator.
+- **PrismaModule global (@Global)** — registrado uma vez no AppModule, elimina instâncias duplicadas de PrismaService.
+- **Regra do MVP:** no máximo um vínculo ativo por usuário; múltiplos vínculos bloqueados com erro controlado.
+- **Admin global** não exige companyId.
+
+**Consequências:**
+- Positivas: JWT leve (sem companyId); efeito imediato ao remover/inativar vínculo (sem esperar expiração de token); isolamento sem migration; schema inalterado; infraestrutura reutilizável para novos módulos
+- Negativas: consulta ao banco em cada requisição empresarial (cache adiado); validação de múltiplos vínculos pela aplicação (não há constraint no banco); company_owner com múltiplas empresas não tem seleção explícita de tenant nesta etapa
+- Riscos: esquecer de adicionar `@RequireCompany()` em nova rota empresarial; vínculo órfão se empresa for excluída (soft delete mitigaria)

@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { CompaniesController } from './companies.controller';
 import { CompaniesService } from './companies.service';
-import { PrismaService } from '../../prisma.service';
 import { AuthModule } from '../auth/auth.module';
+import { TenantModule } from '../tenant/tenant.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, TenantModule],
   controllers: [CompaniesController],
-  providers: [CompaniesService, PrismaService],
+  providers: [CompaniesService],
 })
 export class CompaniesModule {}

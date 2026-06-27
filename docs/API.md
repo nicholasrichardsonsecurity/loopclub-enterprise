@@ -174,10 +174,25 @@ Authorization: Bearer <token>
 
 | Método | Rota | Descrição | Autenticação |
 |--------|------|-----------|-------------|
-| GET | `/companies` | Listar todas as empresas | JWT Bearer Token |
+| GET | `/companies` | Listar empresas (filtradas por tenant) | JWT Bearer Token |
 | POST | `/companies` | Criar nova empresa | JWT Bearer Token |
 | PATCH | `/companies/:id/block` | Bloquear empresa | JWT Bearer Token |
 | PATCH | `/companies/:id/unblock` | Desbloquear empresa | JWT Bearer Token |
+
+**Comportamento do GET /companies por perfil (com isolamento multiempresa):**
+
+| Perfil | HTTP | Resposta |
+|--------|:----:|----------|
+| admin | 200 | Todas as empresas |
+| company_owner com vínculo ativo | 200 | Apenas a empresa vinculada |
+| company_owner sem vínculo | 403 | `"Nenhum vínculo empresarial encontrado."` |
+| company_owner com múltiplos vínculos | 403 | `"Não foi possível determinar o contexto empresarial deste usuário."` |
+| employee | 403 | `"Acesso negado."` (RolesGuard) |
+| client | 403 | `"Acesso negado."` (RolesGuard) |
+| sem token | 401 | `"Token inválido ou ausente."` (JwtAuthGuard) |
+| token inválido | 401 | `"Token inválido."` (JwtStrategy) |
+
+> **Nota:** O companyId usado na consulta é derivado exclusivamente do contexto autenticado (via CompanyUser + TenantService). Parâmetros, body ou query não alteram o tenant.
 
 #### POST /companies
 
@@ -270,7 +285,8 @@ O LoopClub Enterprise atende exclusivamente o mercado brasileiro. Os padrões ab
 - **RolesGuard (RBAC) implementado** — cada rota protegida exige perfil específico. Ver matriz de permissões acima. Perfil sem permissão recebe HTTP 403
 - **Risco de enumeração:** `/auth/register` retorna erro específico se e-mail já existe, permitindo enumeração de usuários
 - **Risco de brute force:** `/auth/login` não possui rate limiting
-- **Risco de IDOR:** rotas com parâmetros de ID não validam permissão do usuário
+- **Risco de IDOR:** rotas com parâmetros de ID não validam permissão do usuário. Mitigação parcial: `GET /companies` usa companyId do contexto autenticado. GET /companies/:id não existe.
 - **Dados expostos:** `GET /users` expõe todos os usuários sem filtro por empresa ou perfil
+- **Isolamento multiempresa:** implementado no GET /companies — companyId derivado exclusivamente do TenantService. Demais rotas (POST, PATCH) são exclusivas admin sem filtro de tenant.
 - **Sem logs de auditoria:** ações nos endpoints não são registradas no AuditLog
 - **Consulte:** [SECURITY.md](SECURITY.md), [THREAT-MODEL.md](THREAT-MODEL.md) e [DATA-MAP.md](DATA-MAP.md) para mapeamento completo de riscos

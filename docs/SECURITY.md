@@ -45,8 +45,17 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
   - **Acesso global de users restrito a admin:** `GET /users` é exclusivo do perfil admin. Nenhum outro perfil, incluindo company_owner, pode listar todos os usuários do sistema. Isso protege dados pessoais de todos os usuários (LGPD — minimização de acesso).
   - **Operações críticas de empresa restritas a admin:** criação (POST), bloqueio (PATCH block) e desbloqueio (PATCH unblock) de empresas são exclusivos do perfil admin, impedindo que company_owner, employee ou client realizem ações administrativas globais.
   - **Testes automatizados de autorização ainda pendentes:** nenhum arquivo `.spec.ts` implementado.
-  - **Isolamento multiempresa por companyId ainda pendente:** consultas não filtram por empresa. Risco de vazamento de dados entre empresas não mitigado.
-- [ ] Validação de tenant isolation (companyId em todas as consultas)
+- [x] **Isolamento multiempresa no GET /companies** — `implementado e validado` (9 testes HTTP, 100% aprovados). Primeira camada de mitigação contra IDOR/BOLA no módulo de empresas:
+  - CompanyId derivado exclusivamente do contexto autenticado via TenantService + CompanyUser.
+  - Nunca confia em companyId fornecido pelo cliente (body, query, params).
+  - Zero vínculos ativos: 403 "Nenhum vínculo empresarial encontrado."
+  - Múltiplos vínculos ativos: 403 "Não foi possível determinar o contexto empresarial deste usuário." (log interno de inconsistência).
+  - Empresa inativa: 403 "Empresa inativa ou bloqueada."
+  - Incoerência User.role × CompanyUser.role: 403 "Não foi possível validar as permissões empresariais deste usuário."
+  - Admin global não exige companyId (acesso irrestrito).
+  - Infraestrutura reutilizável (TenantModule, TenantGuard, TenantService, @RequireCompany()).
+  - **Pendente:** GET /companies/:id com proteção contra acesso cruzado (retornar 404 para recursos de outro tenant), validação HTTP de vínculo inativo e empresa inativa, AuditLog para inconsistências.
+- [ ] Validação de tenant isolation (companyId em todas as consultas) — implementado parcialmente no GET /companies
 - [ ] Proteção contra IDOR em rotas com parâmetros de ID
 
 ### Sessão e tokens
@@ -67,7 +76,7 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
 
 ### Controle de acesso — pendências
 - ~~**RBAC (RolesGuard):** pendente — qualquer token JWT válido acessa todas as rotas protegidas~~ (corrigido — RolesGuard implementado com matriz de permissões)
-- **Isolamento multiempresa:** pendente — consultas não filtram por `companyId`
+- **Isolamento multiempresa:** implementado no GET /companies. Pendente em POST /companies, PATCH /companies/:id/block, PATCH /companies/:id/unblock e demais módulos.
 - **Refresh token e revogação de sessão:** pendentes — token JWT tem expiração fixa de 1 dia sem revogação
 
 ### Pagamentos e webhooks (planejado)

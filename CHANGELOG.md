@@ -17,6 +17,7 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - Matriz de permissões: GET /users (admin), GET /companies (admin, company_owner), POST/PATCH companies (admin)
 - **Padrões brasileiros como requisito transversal permanente** — documentado em 9 arquivos (PRODUCT, ARCHITECTURE, DATABASE, API, DEVELOPMENT, LGPD, SECURITY, DECISIONS, STATUS). Especificação completa de idioma pt-BR, moeda R$, datas DD/MM/AAAA, horário 24h, timezone America/Recife, telefone com DDD, CPF, CNPJ, CEP e endereço brasileiro. ADR-017 registrado. **Nenhum controle implementado no código.**
 - **Correções de documentação viva:** STATUS.md, INSTALLATION.md, DEVELOPMENT.md, README.md, .env.example
+- **Primeira camada de isolamento multiempresa no módulo de empresas via CompanyUser** — TenantModule, TenantService, TenantGuard e decorator `@RequireCompany()`. PrismaModule global. Resolução do companyId por requisição via banco (sem companyId no JWT). GET /companies: admin vê todas, company_owner vê somente sua empresa vinculada. Validação de coerência User.role × CompanyUser.role. Bloqueio de zero vínculos, múltiplos vínculos e empresa inativa. Nenhuma migration, schema inalterado. Seed atualizado com Empresa Alpha, Beta, usuários multi-vínculo e sem vínculo. Build aprovado. 9 testes HTTP validados (100%).
 
 ### Validado
 

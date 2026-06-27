@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiForbiddenResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequireCompany } from '../tenant/decorators/require-company.decorator';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 
@@ -17,8 +18,9 @@ export class CompaniesController {
 
   @Get()
   @Roles('admin', 'company_owner')
-  findAll() {
-    return this.companiesService.findAll();
+  @RequireCompany()
+  findAll(@Req() req: any) {
+    return this.companiesService.findAll(req.user);
   }
 
   @Post()

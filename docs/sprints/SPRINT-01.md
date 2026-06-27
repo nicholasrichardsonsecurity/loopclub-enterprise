@@ -48,6 +48,7 @@ Criar a base técnica e executável do LoopClub Enterprise, com monorepo organiz
 28. **Correções de documentação viva:** STATUS.md (conexão Prisma marcada como validada), INSTALLATION.md (URL real, pasta loopclub-enterprise, NODE_ENV, RBAC_SEED_PASSWORD, seed), DEVELOPMENT.md (corrigida afirmação sobre filtro por companyId), README.md (referência .env.example → backend/.env.example).
 29. **Remoção de .env.example duplicado:** `.env.example` da raiz removido; `backend/.env.example` definido como oficial e atualizado com QR_TOKEN_SECRET e QR_TOKEN_EXPIRES_IN_SECONDS, sem delimitadores de bloco markdown.
 30. **Padrões brasileiros como requisito transversal permanente (27/06/2026):** documentado em 9 arquivos — PRODUCT.md, ARCHITECTURE.md, DATABASE.md, API.md, DEVELOPMENT.md, LGPD.md, SECURITY.md, DECISIONS.md (ADR-017), STATUS.md. **Nenhum controle implementado no código.** Todos os itens registrados como requisitos aprovados com implementação pendente: idioma pt-BR, moeda R$, datas DD/MM/AAAA, horário 24h, timezone America/Recife, telefone com DDD, CPF, CNPJ, CEP, endereço brasileiro.
+31. **Primeira camada de isolamento multiempresa via CompanyUser (27/06/2026):** TenantModule, TenantService, TenantGuard, decorator `@RequireCompany()`, PrismaModule global. JWT mantido com sub+role. CompanyId resolvido por requisição via banco. GET /companies: admin vê todas; company_owner vê somente a própria empresa. Validação de coerência User.role × CompanyUser.role. Bloqueio de zero vínculos, múltiplos vínculos e empresa inativa. Seed atualizado: 7 usuários, 3 empresas (Alpha, Beta, Multi), 5 vínculos CompanyUser. Build aprovado. **Nenhuma migration. Schema inalterado.**
 
 ## Critérios de aceite
 
@@ -232,7 +233,7 @@ Todos os 4 perfis (admin, company_owner, employee, client) foram testados manual
 - **Sem refresh token:** apenas access token com expiração de 1 dia
 - **Sem política de senha forte:** qualquer senha com 6+ caracteres é aceita
 - **Sem sanitização de logs:** dados sensíveis podem vazar em logs
-- **Sem isolamento multiempresa por companyId:** consultas não filtram por empresa. Risco de vazamento de dados entre empresas.
+- **Isolamento multiempresa:** implementado no GET /companies via TenantGuard + CompanyUser. Demais rotas ainda sem isolamento (POST/PATCH companies são exclusivas admin).
 - ~~**CORS aberto:** configurado para desenvolvimento, sem restrição~~ (corrigido — CORS configurável via `CORS_ORIGIN`)
 
 ### Funcionalidades

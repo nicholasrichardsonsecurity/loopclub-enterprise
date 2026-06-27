@@ -72,11 +72,63 @@ A matriz RBAC foi validada manualmente via `curl` contra todos os 4 perfis (admi
 - Swagger Bearer Auth funcionou nos testes.
 - Nenhum token, senha ou hash foi registrado.
 
+### Isolamento multiempresa via CompanyUser — validado manualmente (27/06/2026)
+
+**Status:** `implementado` e `validado manualmente`. Build aprovado.
+
+Primeira camada de isolamento multiempresa, aplicada ao módulo de empresas. Infraestrutura reutilizável (TenantModule, TenantService, TenantGuard) disponível para demais módulos.
+
+#### Componentes implementados
+- **PrismaModule global** — `@Global()` registrado no AppModule, elimina instâncias duplicadas de PrismaService.
+- **TenantModule** — contém TenantService e TenantGuard, exportados para outros módulos.
+- **TenantService** — consulta CompanyUser ativo, valida número de vínculos (0, 1, múltiplos), valida Company.status, valida coerência User.role × CompanyUser.role.
+- **TenantGuard** — lê metadata `@RequireCompany()`, só consulta banco se a rota exigir contexto empresarial.
+- **Decorator `@RequireCompany()`** — combina SetMetadata + UseGuards(TenantGuard) em um único decorator.
+- **JWT mantido mínimo** — apenas `sub` + `role`. CompanyId resolvido por requisição via banco.
+- **CompanyUser como fonte oficial de tenant** — sem companyId no User, sem companyId no JWT.
+- **GET /companies com filtro de tenant** — admin vê todas; company_owner vê somente sua empresa.
+
+#### Resultados da validação (9 testes HTTP)
+
+| # | Teste | HTTP | Camada |
+|---|-------|:----:|--------|
+| 1 | Admin lista todas | 200 | Service (admin vê tudo) |
+| 2 | Owner Alpha lista somente Alpha | 200 | TenantGuard + Service |
+| 3 | Owner Beta lista somente Beta | 200 | TenantGuard + Service |
+| 4 | Employee lista empresas | 403 | RolesGuard |
+| 5 | Client lista empresas | 403 | RolesGuard |
+| 6 | Multivínculo (2 vínculos) | 403 | TenantGuard/TenantService |
+| 7 | Owner sem vínculo | 403 | TenantGuard/TenantService |
+| 8 | Sem token | 401 | JwtAuthGuard |
+| 9 | Token inválido | 401 | JwtAuthGuard |
+
+**Total: 9 cenários executados, 9 aprovados (100%).**
+
+#### Pendências (não declarar como concluído)
+- Isolamento em POST/PATCH companies — não implementado (rotas exclusivas admin, sem tenant).
+- Rota empresarial permitida para employee — nenhuma existe ainda.
+- Validação HTTP de vínculo inativo — só testável via banco.
+- Validação HTTP de empresa inativa — só testável via banco.
+- GET /companies/:id com proteção contra acesso cruzado — endpoint não existe.
+- AuditLog para inconsistências de tenant — não implementado.
+- Permissões para CompanyUserRole.manager — não definidas.
+- Seleção explícita de tenant para múltiplas empresas — adiada.
+- Testes automatizados — nenhum arquivo `.spec.ts`.
+
+#### Regras de validação do TenantService
+- Zero vínculos ativos → 403 "Nenhum vínculo empresarial encontrado."
+- Múltiplos vínculos ativos → 403 "Não foi possível determinar o contexto empresarial deste usuário." + log interno de inconsistência.
+- Empresa inativa → 403 "Empresa inativa ou bloqueada."
+- UserRole.company_owner exige CompanyUserRole.owner — incompatibilidade → 403 "Não foi possível validar as permissões empresariais deste usuário."
+- UserRole.employee exige CompanyUserRole.employee — incompatibilidade → 403.
+- Admin global — não exige tenant.
+- CompanyUser.role = manager — sem permissões definidas nesta etapa (bloqueado por incoerência se aparecer).
+
 #### Pendências (não declarar como concluído)
 
 - Testes automatizados de RBAC — nenhum arquivo `.spec.ts` existe.
-- Isolamento multiempresa por companyId — nenhuma consulta filtra por empresa.
-- Segregação de dados entre empresas — pendente.
+- **Isolamento multiempresa no GET /companies** — `implementado` e `validado manualmente` (9 testes HTTP, 100% aprovados). Primeira camada aplicada ao módulo de empresas: admin vê todas; company_owner vê somente sua empresa; employee/client bloqueados pelo RolesGuard; zero vínculos, múltiplos vínculos e incoerência bloqueados pelo TenantGuard. Demais módulos e rotas ainda sem isolamento.
+- **Segregação de dados entre empresas** — `implementado e validado` no GET /companies. Rotas de block/unblock e criação de empresas continuam sem filtro de tenant (são exclusivas admin).
 - Refresh token com rotação — pendente.
 - Auditoria de ações críticas (AuditLog) — pendente.
 - Conformidade integral com LGPD — pendente.
@@ -185,7 +237,8 @@ A matriz RBAC foi validada manualmente via `curl` contra todos os 4 perfis (admi
 - [ ] Sanitização de logs (Interceptor NestJS)
 - [ ] Registro de auditoria para ações críticas (AuditLog)
 - [ ] Testes de integração para módulo Auth
-- [ ] Validação de multi-tenancy nas consultas
+- [x] **Primeira camada de isolamento multiempresa (GET /companies)** — `implementado e validado`. TenantModule, TenantService, TenantGuard, @RequireCompany(), PrismaModule global. 9 testes HTTP aprovados. Empresa vinculada via CompanyUser. Admin vê todas; company_owner vê só a própria. Sem companyId no JWT. Schema inalterado. Nenhuma migration.
+- [ ] Estender isolamento multiempresa para demais rotas e módulos
 - [ ] Validação jurídica das bases legais LGPD propostas
 - [ ] Implementar canal de atendimento a titulares LGPD
 
