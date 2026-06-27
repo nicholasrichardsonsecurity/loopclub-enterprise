@@ -101,8 +101,8 @@
 | **Impacto** | Acesso não autorizado a dados |
 | **Probabilidade** | Alta |
 | **Severidade** | Alta |
-| **Mitigação atual** | Nenhuma — `/companies/:id/block` não verifica se o usuário tem permissão |
-| **Mitigação pendente** | Validar propriedade ou permissão antes de qualquer operação por ID; RBAC funcional |
+| **Mitigação atual** | RolesGuard com `@Roles('admin')` protege `PATCH /companies/:id/block` e `PATCH /companies/:id/unblock` — apenas admin pode executar. Matriz RBAC validada manualmente. Permissão por perfil verificada antes da operação. |
+| **Mitigação pendente** | Validar propriedade (companyId) e não apenas perfil — company_owner autêntico deve poder bloquear/desbloquear sua própria empresa. Isolamento multiempresa por companyId pendente. |
 
 ### T08 — SQL Injection
 

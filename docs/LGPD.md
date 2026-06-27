@@ -110,7 +110,7 @@ Aplica-se a todo tratamento de dados pessoais realizado pela plataforma LoopClub
 - Hash de senha com bcrypt (10 rounds)
 - JWT com segredo configurável, JwtStrategy com validação de sub/role
 - Guardas JWT (JwtAuthGuard) nas rotas users e companies
-- RBAC (RolesGuard) com decorator @Roles — perfis admin, company_owner, employee, client
+- RBAC (RolesGuard) com decorator @Roles — perfis admin, company_owner, employee, client — **validado manualmente (matriz completa)**
 - Validação de entrada com `class-validator`
 - Whitelist de parâmetros via ValidationPipe com `forbidNonWhitelisted: true`
 - Registro público não coleta `phone` nem aceita `role` no body — coleta mínima de dados (somente name, email, password)

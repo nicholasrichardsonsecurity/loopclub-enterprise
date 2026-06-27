@@ -22,15 +22,31 @@ Authorization: Bearer <token>
 | Rota protegida com token válido e perfil autorizado | Acesso permitido conforme a rota |
 | Rota pública sem token | Acesso permitido |
 
-### Matriz de permissões (RBAC)
+### Matriz de permissões (RBAC) — validado manualmente
 
-| Rota | admin | company_owner | employee | client |
-|------|-------|---------------|----------|--------|
-| `GET /users` | ✅ | ❌ | ❌ | ❌ |
-| `GET /companies` | ✅ | ✅ | ❌ | ❌ |
-| `POST /companies` | ✅ | ❌ | ❌ | ❌ |
-| `PATCH /companies/:id/block` | ✅ | ❌ | ❌ | ❌ |
-| `PATCH /companies/:id/unblock` | ✅ | ❌ | ❌ | ❌ |
+| Rota | admin | company_owner | employee | client | sem token |
+|------|-------|---------------|----------|--------|-----------|
+| `GET /users` | ✅ 200 | ❌ 403 | ❌ 403 | ❌ 403 | ❌ 401 |
+| `GET /companies` | ✅ 200 | ✅ 200 | ❌ 403 | ❌ 403 | ❌ 401 |
+| `POST /companies` | ✅ 201 | ❌ 403 | ❌ 403 | ❌ 403 | ❌ 401 |
+| `PATCH /companies/:id/block` | ✅ 200 | ❌ 403 | ❌ 403 | ❌ 403 | ❌ 401 |
+| `PATCH /companies/:id/unblock` | ✅ 200 | ❌ 403 | ❌ 403 | ❌ 403 | ❌ 401 |
+
+**Comportamentos confirmados:**
+
+| Cenário | Resposta |
+|---------|----------|
+| Rota protegida sem token | HTTP 401 Unauthorized — `{ "message": "Token inválido ou ausente." }` |
+| Rota protegida com token inválido | HTTP 401 Unauthorized |
+| Rota protegida com token válido mas perfil sem permissão | HTTP 403 Forbidden — `{ "message": "Acesso negado." }` |
+| Rota protegida com token válido e perfil autorizado | HTTP 200 OK ou 201 Created conforme a rota |
+| Rota pública sem token | Acesso permitido |
+
+**Princípio do menor privilégio aplicado:**
+
+- `GET /users` — exclusivo para admin. Nenhum outro perfil pode listar todos os usuários do sistema.
+- `GET /companies` — admin e company_owner podem visualizar empresas. Employee e client não.
+- `POST /companies`, `PATCH /companies/:id/block`, `PATCH /companies/:id/unblock` — exclusivos para admin. Ações críticas de criação e bloqueio de empresas são restritas ao administrador global.
 
 ### Rotas públicas
 

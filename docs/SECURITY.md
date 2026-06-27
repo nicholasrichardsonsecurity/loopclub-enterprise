@@ -35,7 +35,17 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
 
 ### Controle de acesso
 - [x] Guardas JWT em users e companies (JwtAuthGuard) — `implementado e validado`
-- [x] RolesGuard com decorator @Roles (RBAC) — `implementado e validado`. Perfis: admin, company_owner, employee, client. Princípio do menor privilégio aplicado: cada endpoint exige o perfil mínimo necessário.
+- [x] RolesGuard com decorator @Roles (RBAC) — `implementado e validado manualmente com validação completa da matriz`. Perfis: admin, company_owner, employee, client. Princípio do menor privilégio aplicado: cada endpoint exige o perfil mínimo necessário. Autenticação e autorização separadas (JwtAuthGuard autentica, RolesGuard autoriza).
+  - **Validação manual confirmou:**
+    - Admin: acesso completo a todas as rotas testadas (GET /users, GET /companies, POST /companies, PATCH block/unblock)
+    - Company owner: apenas GET /companies permitido; demais rotas retornam 403
+    - Employee: todas as rotas administrativas bloqueadas (403)
+    - Client: todas as rotas administrativas bloqueadas (403)
+    - Sem token: 401 em todas as rotas protegidas
+  - **Acesso global de users restrito a admin:** `GET /users` é exclusivo do perfil admin. Nenhum outro perfil, incluindo company_owner, pode listar todos os usuários do sistema. Isso protege dados pessoais de todos os usuários (LGPD — minimização de acesso).
+  - **Operações críticas de empresa restritas a admin:** criação (POST), bloqueio (PATCH block) e desbloqueio (PATCH unblock) de empresas são exclusivos do perfil admin, impedindo que company_owner, employee ou client realizem ações administrativas globais.
+  - **Testes automatizados de autorização ainda pendentes:** nenhum arquivo `.spec.ts` implementado.
+  - **Isolamento multiempresa por companyId ainda pendente:** consultas não filtram por empresa. Risco de vazamento de dados entre empresas não mitigado.
 - [ ] Validação de tenant isolation (companyId em todas as consultas)
 - [ ] Proteção contra IDOR em rotas com parâmetros de ID
 

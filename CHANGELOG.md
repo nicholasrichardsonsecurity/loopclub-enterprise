@@ -28,7 +28,19 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - JwtAuthGuard — rotas sem token retornam 401, com token inválido retornam 401, com token válido retornam 200
 - Rotas públicas — `GET /auth/health`, `POST /auth/register`, `POST /auth/login` permanecem acessíveis sem token
 - Swagger Bearer Auth — documentação e autenticação via Swagger UI validada
-- RolesGuard — admin acessa todas as rotas; company_owner acessa apenas GET /companies; employee e client recebem 403
+
+### Validação completa da matriz RBAC
+
+- **Matriz RBAC validada manualmente** — todos os 4 perfis (admin, company_owner, employee, client) testados contra todas as 6 rotas protegidas via `curl`.
+- **Diferenciação 401 vs 403 confirmada** — usuário não autenticado recebe 401; usuário autenticado sem permissão recebe 403.
+- **Permissões de admin validadas:** acesso completo a GET /users (200), GET /companies (200), POST /companies (201), PATCH block/unblock (200).
+- **Permissões de company_owner validadas:** apenas GET /companies (200) permitido. Demais rotas retornam 403.
+- **Permissões de employee validadas:** todas as rotas administrativas retornam 403.
+- **Permissões de client validadas:** todas as rotas administrativas retornam 403.
+- **Rotas sem token:** GET /users e GET /companies retornam 401.
+- **Nenhum token, senha ou hash registrado nos testes.**
+- **Princípio do menor privilégio confirmado:** cada perfil acessa exclusivamente o mínimo necessário.
+- **Swagger Bearer Auth validado** em conjunto com a matriz.
 
 ### Corrigido
 

@@ -44,6 +44,7 @@ Criar a base técnica e executável do LoopClub Enterprise, com monorepo organiz
 24. RolesGuard + @Roles implementados: matriz de permissões (admin, company_owner, employee, client) aplicada a users e companies
 25. **Correção de segurança crítica:** `POST /auth/register` não aceita mais `role`, `status`, `companyId`, `permissions` ou `phone` no body. `ValidationPipe` global com `forbidNonWhitelisted: true`. Service força `role: "client"` internamente. Swagger atualizado.
 26. **Correção de segurança do seed:** `prisma/seed.ts` — senha fixa removida do código. Seed lê `RBAC_SEED_PASSWORD` de variável de ambiente. Allowlist de ambientes: permitido exclusivamente com `NODE_ENV=development` ou `test` (production, staging, ausente ou inválido bloqueiam). Upsert com `update: {}` — não altera nenhum dado de usuários existentes. Nenhum segredo nos logs. Idempotente.
+27. **Validação manual completa da matriz RBAC (27/06/2026):** 26 cenários testados (4 perfis × 6 rotas + 2 sem token), 100% aprovados. Diferenciação 401 vs 403 confirmada. Princípio do menor privilégio aplicado e validado. Nenhum token, senha ou hash registrado nos testes. Swagger Bearer Auth validado em conjunto.
 
 ## Critérios de aceite
 
@@ -85,7 +86,42 @@ docker compose up -d postgres
 
 ## Validação manual — Autenticação e hardening
 
-Testes executados em 26/06/2026 contra `localhost:3000` com o servidor rodando via `node dist/main.js`.
+Testes executados em 26-27/06/2026 contra `localhost:3000` com o servidor rodando via `node dist/main.js`.
+
+### Matriz RBAC — validação completa (27/06/2026)
+
+Todos os 4 perfis (admin, company_owner, employee, client) foram testados manualmente via `curl` contra todas as 6 rotas protegidas. Resultados:
+
+| Perfil | Rota | HTTP esperado | HTTP obtido | Status |
+|--------|------|:---:|:---:|:------:|
+| admin | POST /auth/login | 200 | 200 | ✅ |
+| admin | GET /users | 200 | 200 | ✅ |
+| admin | GET /companies | 200 | 200 | ✅ |
+| admin | POST /companies | 201 | 201 | ✅ |
+| admin | PATCH /companies/:id/block | 200 | 200 | ✅ |
+| admin | PATCH /companies/:id/unblock | 200 | 200 | ✅ |
+| company_owner | POST /auth/login | 200 | 200 | ✅ |
+| company_owner | GET /users | 403 | 403 | ✅ |
+| company_owner | GET /companies | 200 | 200 | ✅ |
+| company_owner | POST /companies | 403 | 403 | ✅ |
+| company_owner | PATCH /companies/:id/block | 403 | 403 | ✅ |
+| company_owner | PATCH /companies/:id/unblock | 403 | 403 | ✅ |
+| employee | POST /auth/login | 200 | 200 | ✅ |
+| employee | GET /users | 403 | 403 | ✅ |
+| employee | GET /companies | 403 | 403 | ✅ |
+| employee | POST /companies | 403 | 403 | ✅ |
+| employee | PATCH /companies/:id/block | 403 | 403 | ✅ |
+| employee | PATCH /companies/:id/unblock | 403 | 403 | ✅ |
+| client | POST /auth/login | 200 | 200 | ✅ |
+| client | GET /users | 403 | 403 | ✅ |
+| client | GET /companies | 403 | 403 | ✅ |
+| client | POST /companies | 403 | 403 | ✅ |
+| client | PATCH /companies/:id/block | 403 | 403 | ✅ |
+| client | PATCH /companies/:id/unblock | 403 | 403 | ✅ |
+| sem token | GET /users | 401 | 401 | ✅ |
+| sem token | GET /companies | 401 | 401 | ✅ |
+
+**Total: 26 cenários executados, 26 aprovados (100%).**
 
 ### POST /auth/register
 
@@ -115,16 +151,28 @@ Testes executados em 26/06/2026 contra `localhost:3000` com o servidor rodando v
 | Cenário | Resultado |
 |---------|-----------|
 | admin GET /users | HTTP 200 — lista de usuários |
-| client GET /users | HTTP 403 — `{ "message": "Acesso negado." }` |
-| employee GET /users | HTTP 403 |
-| admin POST /companies | HTTP 201 (ou 500 sem banco — guard passou) |
-| client POST /companies | HTTP 403 |
+| admin GET /companies | HTTP 200 — lista de empresas |
+| admin POST /companies | HTTP 201 — empresa criada |
+| admin PATCH /companies/:id/block | HTTP 200 — empresa bloqueada |
+| admin PATCH /companies/:id/unblock | HTTP 200 — empresa desbloqueada |
+| company_owner GET /users | HTTP 403 — `{ "message": "Acesso negado." }` |
+| company_owner GET /companies | HTTP 200 — lista de empresas (permitido) |
+| company_owner POST /companies | HTTP 403 |
 | company_owner PATCH /companies/:id/block | HTTP 403 |
-| admin PATCH /companies/:id/block | Guard autoriza (HTTP 500 sem banco) |
-| company_owner GET /companies | HTTP 200 — permitido |
+| company_owner PATCH /companies/:id/unblock | HTTP 403 |
+| employee GET /users | HTTP 403 |
 | employee GET /companies | HTTP 403 |
+| employee POST /companies | HTTP 403 |
+| employee PATCH /companies/:id/block | HTTP 403 |
+| employee PATCH /companies/:id/unblock | HTTP 403 |
+| client GET /users | HTTP 403 |
 | client GET /companies | HTTP 403 |
+| client POST /companies | HTTP 403 |
+| client PATCH /companies/:id/block | HTTP 403 |
+| client PATCH /companies/:id/unblock | HTTP 403 |
 | Rotas públicas sem token | HTTP 200/201 — permanecem públicas |
+| GET /users sem token | HTTP 401 |
+| GET /companies sem token | HTTP 401 |
 
 ### JWT Guard — rotas protegidas
 
@@ -172,7 +220,7 @@ Testes executados em 26/06/2026 contra `localhost:3000` com o servidor rodando v
 ## Pendências e problemas conhecidos
 
 ### Segurança e LGPD
-- ~~**Rotas não protegidas:** Nenhum `@UseGuards()`, `AuthGuard` ou `RolesGuard` implementado~~ (corrigido — JwtAuthGuard protege users e companies; RolesGuard com @Roles define permissões por perfil)
+- ~~**Rotas não protegidas:** Nenhum `@UseGuards()`, `AuthGuard` ou `RolesGuard` implementado~~ (corrigido — JwtAuthGuard protege users e companies; RolesGuard com @Roles define permissões por perfil — **matriz RBAC validada manualmente em todos os 4 perfis**)
 - **Risco de enumeração:** `/auth/register` retorna erro específico se e-mail existe
 - **Risco de brute force:** `/auth/login` não possui rate limiting
 - **Risco de IDOR:** rotas com parâmetros de ID não validam permissão
@@ -181,6 +229,7 @@ Testes executados em 26/06/2026 contra `localhost:3000` com o servidor rodando v
 - **Sem refresh token:** apenas access token com expiração de 1 dia
 - **Sem política de senha forte:** qualquer senha com 6+ caracteres é aceita
 - **Sem sanitização de logs:** dados sensíveis podem vazar em logs
+- **Sem isolamento multiempresa por companyId:** consultas não filtram por empresa. Risco de vazamento de dados entre empresas.
 - ~~**CORS aberto:** configurado para desenvolvimento, sem restrição~~ (corrigido — CORS configurável via `CORS_ORIGIN`)
 
 ### Funcionalidades
@@ -189,7 +238,6 @@ Testes executados em 26/06/2026 contra `localhost:3000` com o servidor rodando v
 - **App Flutter usa dados mockados** (sem integração com API real)
 - **CompanyUser não é criado no registro** — vínculo empresa-usuário não existe
 - **Sem seed de dados iniciais** — Admin Master precisa ser criado manualmente
-- **Endpoints de company não validam permissão** — qualquer um pode criar/alterar empresa
 
 ### Riscos residuais de segurança (após hardening)
 - **Sem rate limiting:** rotas abertas como `/auth/login` e `/auth/register` não possuem proteção contra brute force ou abuso

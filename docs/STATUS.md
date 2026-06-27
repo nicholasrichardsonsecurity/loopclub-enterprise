@@ -1,6 +1,6 @@
 # Status do Desenvolvimento
 
-Atualizado em: 26/06/2026
+Atualizado em: 27/06/2026
 
 **Legenda:**
 
@@ -35,8 +35,51 @@ Atualizado em: 26/06/2026
 - [x] **x-powered-by removido** — `validado manualmente`. Header ausente no response.
 - [x] **Swagger /docs** — `validado manualmente`. Retorna HTTP 200. Decorators Swagger documentam register (201, 409, 400) e login (200, 401, 400). Rotas protegidas (users, companies) documentadas com `@ApiBearerAuth()` e `@ApiUnauthorizedResponse()`. Swagger Bearer Auth validado.
 - [x] **JWT Guard — rotas protegidas** — `implementado` e `validado manualmente`. JwtStrategy com validação de sub/role e expiração. JwtAuthGuard com suporte a `@Public()`. UsersController e CompaniesController protegidos. Rotas sem token retornam 401; token inválido retorna 401; token válido retorna 200.
-- [x] **RolesGuard (RBAC)** — `implementado` e `validado manualmente`. Decorator `@Roles()` lê perfil do JWT. Users: só admin. Companies GET: admin + company_owner. Companies POST/PATCH: só admin. Retorna 403 para perfil sem permissão.
 - [x] **Rotas públicas permanecem públicas** — `validado manualmente`. `GET /auth/health`, `POST /auth/register`, `POST /auth/login` continuam acessíveis sem token.
+
+### RBAC — validação manual completa da matriz de permissões
+
+**Status:** `implementado` e `validado manualmente`. Build aprovado. Testes automatizados pendentes.
+
+A matriz RBAC foi validada manualmente via `curl` contra todos os 4 perfis (admin, company_owner, employee, client) em todas as 6 rotas protegidas. A validação confirmou a separação clara entre:
+
+- **401 Unauthorized** — usuário não autenticado (sem token ou token inválido)
+- **403 Forbidden** — usuário autenticado sem permissão para a rota
+- **200/201 OK** — usuário autenticado com permissão
+
+#### Resultados por perfil
+
+| Rota | admin | company_owner | employee | client |
+|------|-------|---------------|----------|--------|
+| `GET /users` | ✅ 200 | ❌ 403 | ❌ 403 | ❌ 403 |
+| `GET /companies` | ✅ 200 | ✅ 200 | ❌ 403 | ❌ 403 |
+| `POST /companies` | ✅ 201 | ❌ 403 | ❌ 403 | ❌ 403 |
+| `PATCH /companies/:id/block` | ✅ 200 | ❌ 403 | ❌ 403 | ❌ 403 |
+| `PATCH /companies/:id/unblock` | ✅ 200 | ❌ 403 | ❌ 403 | ❌ 403 |
+
+| Sem token | `GET /users` → 401 | `GET /companies` → 401 |
+
+#### O que foi validado
+
+- `JwtAuthGuard` protege todas as rotas privadas corretamente.
+- `RolesGuard` aplica as permissões por perfil via decorator `@Roles()`.
+- O decorator `@Roles()` está funcionando conforme especificado.
+- Admin possui acesso administrativo completo a todas as rotas testadas.
+- Company owner pode listar empresas (GET), mas não pode executar ações administrativas globais (POST/PATCH).
+- Employee não pode acessar nenhuma rota administrativa global.
+- Client não pode acessar nenhuma rota administrativa global.
+- Mesmo ID de empresa foi usado para validar block/unblock com perfis sem permissão.
+- Swagger Bearer Auth funcionou nos testes.
+- Nenhum token, senha ou hash foi registrado.
+
+#### Pendências (não declarar como concluído)
+
+- Testes automatizados de RBAC — nenhum arquivo `.spec.ts` existe.
+- Isolamento multiempresa por companyId — nenhuma consulta filtra por empresa.
+- Segregação de dados entre empresas — pendente.
+- Refresh token com rotação — pendente.
+- Auditoria de ações críticas (AuditLog) — pendente.
+- Conformidade integral com LGPD — pendente.
 
 ## ✅ Implementado (não validado)
 
