@@ -143,7 +143,7 @@ loopclub_enterprise_sprint01/
 │       └── users/         Consulta de usuários
 ├── docs/                  Documentação viva
 ├── docker-compose.yml     PostgreSQL 16
-└── .env.example           Modelo de variáveis
+└── backend/.env.example     Modelo de variáveis do backend
 ```
 
 ---
@@ -329,4 +329,4 @@ Consulte [CONTRIBUTING.md](CONTRIBUTING.md) para as regras de contribuição e [
 
 ## Licença
 
-Projeto privado em desenvolvimento. Todos os direitos reservados.
+Código proprietário em desenvolvimento, publicado para fins de portfólio e demonstração técnica. Todos os direitos reservados à Nicholas Richardson Inácio da Silva, idealizador e desenvolvedor do sistema LoopClub Enterprise.

@@ -14,8 +14,8 @@ Este guia cobre a instalação completa do ambiente de desenvolvimento local do 
 ## 1. Clone o repositório
 
 ```powershell
-git clone https://github.com/seu-usuario/loopclub-enterprise.git
-cd loopclub_enterprise_sprint01
+git clone https://github.com/nicholasrichardsonsecurity/loopclub-enterprise.git
+cd loopclub-enterprise
 ```
 
 ## 2. Configure o PostgreSQL
@@ -55,9 +55,16 @@ DATABASE_URL="postgresql://usuario:senha@localhost:5432/loopclub_db?schema=publi
 JWT_SECRET="uma_chave_segura_aqui"
 JWT_REFRESH_SECRET="outra_chave_segura"
 APP_PORT=3000
+NODE_ENV=development
+CORS_ORIGIN="http://localhost:3001,http://localhost:5173"
 QR_TOKEN_SECRET="qr_secret_trocar_em_producao"
 QR_TOKEN_EXPIRES_IN=30
+
+# Apenas para desenvolvimento — seed RBAC só executa com NODE_ENV=development ou test
+RBAC_SEED_PASSWORD=
 ```
+
+> **Atenção ao seed:** O seed RBAC (`npx prisma db seed` ou `ts-node prisma/seed.ts`) só executa em ambientes `development` ou `test`. Em produção, staging ou ambiente ausente/inválido, o seed é bloqueado com erro. A senha é lida exclusivamente da variável `RBAC_SEED_PASSWORD` — nunca fica hardcoded. Usuários existentes não são alterados (upsert com `update: {}`).
 
 ### Gere o Prisma Client e execute migrações
 

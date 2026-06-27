@@ -52,7 +52,7 @@ nest generate service modules/nome
 - Services contêm regras de negócio e acesso ao banco
 - DTOs usam `class-validator` para validação
 - Swagger decorators nos controllers para documentação automática
-- Consultas sempre filtram por `companyId` (multi-tenancy)
+- Consultas DEVEM sempre filtrar por `companyId` (multi-tenancy) — regra obrigatória de isolamento entre empresas. A implementação desta regra em todos os endpoints existentes ainda está pendente
 
 ## Mobile (Flutter)
 

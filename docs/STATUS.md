@@ -88,8 +88,8 @@ A matriz RBAC foi validada manualmente via `curl` contra todos os 4 perfis (admi
 - [x] **Monorepo estruturado** — `implementado`. Pastas `apps/`, `backend/`, `docs/`, `infra/`, `packages/` criadas.
 - [x] **Backend NestJS compila** — `validado`. Comando `nest build` executa sem erros (NestJS 10.4, Node 24.16).
 - [x] **Swagger configurado** — `implementado` e `validado`. Configurado em `main.ts` com `DocumentBuilder`, `addBearerAuth()`, rota `/docs`. Retorna HTTP 200 via `curl`. Decorators `@ApiCreatedResponse`, `@ApiConflictResponse`, `@ApiOkResponse`, `@ApiUnauthorizedResponse`, `@ApiBadRequestResponse` documentam respostas de register e login.
-- [x] **Prisma conectado ao PostgreSQL** — `implementado`. `PrismaService` configurado com `onModuleInit`/`onModuleDestroy`. **Pendente:** validar conexão com banco rodando.
-- [x] **Migration inicial executada** — `implementado`. Arquivo `20260626085739_init/migration.sql` gerado com schema completo. **Pendente:** reexecutar `prisma migrate dev` para validar consistência atual.
+- [x] **Prisma conectado ao PostgreSQL** — `implementado` e `validado manualmente`. Conexão com banco local confirmada durante os testes de seed, login, RBAC e operações com empresas (register, login, companies). Todas as operações usaram o banco PostgreSQL real.
+- [x] **Migration inicial executada** — `implementado`. Arquivo `20260626085739_init/migration.sql` gerado com schema completo. **Pendente:** reexecutar `prisma migrate dev` para confirmar consistência com estado atual do código (não foi reexecutada após alterações recentes de segurança).
 - [x] **Docker Compose PostgreSQL 16** — `implementado`. Arquivo `docker-compose.yml` com PostgreSQL 16 Alpine, porta 5432, volume persistente. **Pendente:** executar `docker compose up -d` e validar.
 
 ### Schema Prisma
