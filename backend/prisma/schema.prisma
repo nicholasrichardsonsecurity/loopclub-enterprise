@@ -46,21 +46,58 @@ enum TransactionType {
   reward_redeemed
 }
 
+enum CustomerStatus {
+  active
+  inactive
+  deleted
+}
+
+enum CompanyCustomerStatus {
+  active
+  inactive
+  blocked
+}
+
+enum CompanyCustomerSource {
+  registration
+  qrcode
+  manual
+}
+
+enum CustomerConsentPurpose {
+  marketing
+  communication
+  data_sharing
+}
+
+enum CustomerConsentSource {
+  self_service
+  employee
+  import
+}
+
+enum ConsentAction {
+  granted
+  revoked
+}
+
 model User {
-  id           String       @id @default(uuid())
+  id           String     @id @default(uuid())
   name         String
-  phone        String?      @unique
-  email        String?      @unique
+  phone        String?    @unique
+  email        String?    @unique
   passwordHash String?
   role         UserRole
-  status       UserStatus   @default(active)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  status       UserStatus @default(active)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  companyUsers CompanyUser[]
-  clientProgress LoyaltyProgress[] @relation("ClientProgress")
-  operatedTransactions Transaction[] @relation("OperatorTransactions")
-  clientTransactions Transaction[] @relation("ClientTransactions")
+  companyUsers                  CompanyUser[]
+  clientProgress                LoyaltyProgress[]      @relation("ClientProgress")
+  operatedTransactions          Transaction[]          @relation("OperatorTransactions")
+  clientTransactions            Transaction[]          @relation("ClientTransactions")
+  customer                      Customer?              @relation("CustomerUser")
+  recordedCustomerConsentEvents CustomerConsentEvent[] @relation("CustomerConsentRecordedBy")
 }
 
 model Company {
@@ -78,11 +115,12 @@ model Company {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  users          CompanyUser[]
-  programs       LoyaltyProgram[]
-  subscriptions  Subscription[]
-  progress       LoyaltyProgress[]
-  transactions   Transaction[]
+  users         CompanyUser[]
+  programs      LoyaltyProgram[]
+  subscriptions Subscription[]
+  progress      LoyaltyProgress[]
+  transactions  Transaction[]
+  customerLinks CompanyCustomer[]
 }
 
 model CompanyUser {
@@ -93,8 +131,8 @@ model CompanyUser {
   status    UserStatus      @default(active)
   createdAt DateTime        @default(now())
 
-  company   Company @relation(fields: [companyId], references: [id])
-  user      User    @relation(fields: [userId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
 
   @@unique([companyId, userId])
   @@index([companyId])
@@ -104,7 +142,7 @@ model CompanyUser {
 model Plan {
   id          String   @id @default(uuid())
   name        String
-  price       Decimal  @db.Decimal(10,2)
+  price       Decimal  @db.Decimal(10, 2)
   maxClients  Int?
   maxPrograms Int?
   features    Json?
@@ -115,15 +153,15 @@ model Plan {
 }
 
 model Subscription {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   companyId String
   planId    String
-  price     Decimal  @db.Decimal(10,2)
-  status    String   @default("active")
+  price     Decimal   @db.Decimal(10, 2)
+  status    String    @default("active")
   dueDate   DateTime?
   paidUntil DateTime?
   notes     String?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   company Company @relation(fields: [companyId], references: [id])
   plan    Plan    @relation(fields: [planId], references: [id])
@@ -134,7 +172,7 @@ model Subscription {
 
 model LoyaltyProgram {
   id                String             @id @default(uuid())
-  companyId          String
+  companyId         String
   name              String
   description       String?
   type              LoyaltyProgramType
@@ -145,20 +183,20 @@ model LoyaltyProgram {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
-  company    Company @relation(fields: [companyId], references: [id])
-  milestones LoyaltyMilestone[]
-  progress   LoyaltyProgress[]
+  company      Company            @relation(fields: [companyId], references: [id])
+  milestones   LoyaltyMilestone[]
+  progress     LoyaltyProgress[]
   transactions Transaction[]
 
   @@index([companyId])
 }
 
 model LoyaltyMilestone {
-  id                String @id @default(uuid())
-  programId          String
-  pointsRequired     Int
-  rewardName         String
-  rewardDescription  String?
+  id                String  @id @default(uuid())
+  programId         String
+  pointsRequired    Int
+  rewardName        String
+  rewardDescription String?
 
   program LoyaltyProgram @relation(fields: [programId], references: [id])
 
@@ -176,9 +214,9 @@ model LoyaltyProgress {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  company Company @relation(fields: [companyId], references: [id])
+  company Company        @relation(fields: [companyId], references: [id])
   program LoyaltyProgram @relation(fields: [programId], references: [id])
-  client  User @relation("ClientProgress", fields: [clientId], references: [id])
+  client  User           @relation("ClientProgress", fields: [clientId], references: [id])
 
   @@unique([programId, clientId])
   @@index([companyId])
@@ -196,10 +234,10 @@ model Transaction {
   description String?
   createdAt   DateTime        @default(now())
 
-  company  Company @relation(fields: [companyId], references: [id])
+  company  Company         @relation(fields: [companyId], references: [id])
   program  LoyaltyProgram? @relation(fields: [programId], references: [id])
-  client   User @relation("ClientTransactions", fields: [clientId], references: [id])
-  operator User? @relation("OperatorTransactions", fields: [operatorId], references: [id])
+  client   User            @relation("ClientTransactions", fields: [clientId], references: [id])
+  operator User?           @relation("OperatorTransactions", fields: [operatorId], references: [id])
 
   @@index([companyId])
   @@index([clientId])
@@ -207,14 +245,14 @@ model Transaction {
 }
 
 model QrToken {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   companyId String
   clientId  String
-  tokenHash String   @unique
+  tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  status    String   @default("active")
-  createdAt DateTime @default(now())
+  status    String    @default("active")
+  createdAt DateTime  @default(now())
 
   @@index([tokenHash])
   @@index([expiresAt])
@@ -232,4 +270,63 @@ model AuditLog {
 
   @@index([companyId])
   @@index([createdAt])
+}
+
+model Customer {
+  id              String         @id @default(uuid())
+  name            String
+  phoneE164       String         @unique
+  emailNormalized String?
+  cpfLookupHash   String?        @unique
+  cpfLastDigits   String?
+  birthDate       DateTime?
+  status          CustomerStatus @default(active)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  userId String? @unique
+  user   User?   @relation("CustomerUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  companyCustomers CompanyCustomer[]
+}
+
+model CompanyCustomer {
+  id             String                @id @default(uuid())
+  customerId     String
+  companyId      String
+  internalCode   String?
+  status         CompanyCustomerStatus @default(active)
+  source         CompanyCustomerSource @default(manual)
+  notes          String?
+  joinedAt       DateTime              @default(now())
+  lastAttendedAt DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  customer      Customer               @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  company       Company                @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  consentEvents CustomerConsentEvent[]
+
+  @@unique([customerId, companyId])
+  @@unique([companyId, internalCode])
+  @@index([companyId, status])
+}
+
+model CustomerConsentEvent {
+  id                String                 @id @default(uuid())
+  companyCustomerId String
+  purpose           CustomerConsentPurpose
+  action            ConsentAction
+  policyVersion     String
+  source            CustomerConsentSource
+  recordedByUserId  String?
+  recordedByUser    User?                  @relation("CustomerConsentRecordedBy", fields: [recordedByUserId], references: [id], onDelete: SetNull)
+  occurredAt        DateTime               @default(now())
+  ipAddress         String?
+  userAgent         String?
+
+  companyCustomer CompanyCustomer @relation(fields: [companyCustomerId], references: [id], onDelete: Restrict)
+
+  @@index([companyCustomerId, purpose, occurredAt])
+  @@index([recordedByUserId])
 }
