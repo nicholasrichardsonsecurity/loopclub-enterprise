@@ -57,7 +57,8 @@ O LoopClub oferece um aplicativo único onde clientes acumulam pontos e trocam p
 | Isolamento multiempresa — primeira camada validada no módulo de empresas (GET /companies) | ✅ Implementado e validado (infraestrutura de tenant + GET /companies) |
 | PrismaModule global, TenantModule, TenantService, TenantGuard | ✅ Implementado |
 | 3 suítes de testes unitários (19 testes aprovados) | ✅ Implementado e validado |
-| CI do backend validada no GitHub Actions (Node 24) | ✅ Implementado e validado |
+| 24 testes e2e (Supertest + PostgreSQL exclusivo) | ✅ Implementado e validado |
+| CI do backend (unitários + build + e2e no GitHub Actions) | ✅ Implementado e validado |
 | Gestão de usuários | ✅ Implementado |
 | Helmet, CORS, hardening | ✅ Implementado e validado |
 | App mobile (Flutter) | 🎨 Interface mockada |
@@ -65,7 +66,7 @@ O LoopClub oferece um aplicativo único onde clientes acumulam pontos e trocam p
 | Programas de fidelidade | 🗓️ Planejado |
 | QR Code dinâmico | 🗓️ Planejado |
 | Pagamentos e NFS-e | 🗓️ Planejado |
-| Testes e2e | 🗓️ Pendente |
+| Testes e2e (24 testes, PostgreSQL exclusivo, Supertest) | ✅ Implementado e validado |
 | Push notifications | 🗓️ Planejado |
 
 ---
@@ -246,6 +247,55 @@ Detalhes completos em [docs/API.md](docs/API.md).
 
 ---
 
+## Identidade Visual
+
+| Item | Especificação |
+|------|---------------|
+| Logomarca oficial | LoopClub — símbolo de elos sobrepostos |
+| Cor primária | `#6D28D9` (roxo) |
+| Cor primária escura | `#4C1D95` |
+| Cor de acento | `#14B8A6` (teal) |
+| Tipografia | Inter |
+| Design System | [Figma — LoopClub Design System v1](https://figma.com) (referência oficial) |
+
+> **Atenção:** identidade visual aprovada como especificação de design. Nenhum frontend implementa integralmente esses padrões atualmente.
+
+## Estratégia Comercial — Hipóteses a Validar
+
+Os valores abaixo são hipóteses comerciais, não preços definitivos. Nenhum plano, faturamento ou contratação automática está implementado.
+
+| Plano | Preço hipotético | Modelo de implantação |
+|-------|-------------------|-----------------------|
+| Essencial | R$ 129/mês | Autoimplantação guiada |
+| Profissional | R$ 249/mês | Autoimplantação guiada |
+| Premium | R$ 449/mês | Implantação assistida |
+| Enterprise | a partir de R$ 899/mês | Implantação assistida |
+
+- **Lançamento:** 50% de desconto na implantação
+- **Modelo:** venda consultiva inicial, migração futura para contratação automática
+- **Implantação:** autoimplantação guiada para planos menores; assistida para clientes que precisarem
+- **Treinamento:** padrão e enxuto, com automação progressiva
+- **Site institucional e comercial:** pendente
+
+### Diferenciais (hipóteses de roadmap)
+
+| Diferencial | Descrição |
+|-------------|-----------|
+| Simulador de custo e rentabilidade | Calculadora de retorno do programa de fidelidade |
+| Assistente guiado de criação | Wizard de configuração do primeiro programa |
+| Centro de implantação | Checklist e acompanhamento do onboarding |
+| Academia LoopClub | Treinamentos, tutoriais e certificação |
+| Modo balcão | Interface otimizada para atendimento presencial |
+| Experiência por link/PWA | Carteira do cliente sem instalação de app |
+| Carteira única multiempresa | Acumular pontos em várias empresas com um único login |
+| Central de LGPD | Ferramentas de compliance para o cliente empresarial |
+| Antifraude | Detecção de uso indevido de pontos |
+| Campanhas com proteção de margem | Promoções que não comprometem a rentabilidade |
+| Modelos por segmento | Programas pré-configurados para açaí, restaurante, barbearia |
+| Assistente de campanhas com IA | Sugestão de regras e recompensas com revisão humana |
+
+> **Hipóteses não implementadas.** Nenhum destes itens existe em código, interface ou integração. Servem como direcionamento de roadmap e devem ser validadas com clientes reais antes do desenvolvimento.
+
 ## Segurança e LGPD
 
 O LoopClub adota privacy by design e security by design desde a concepção. A implementação dos controles está em evolução e a conformidade integral depende de implementação, auditoria e revisão jurídica.
@@ -295,7 +345,7 @@ O LoopClub adota privacy by design e security by design desde a concepção. A i
 | Pagamentos e NFS-e | 🗓️ Planejado |
 | Push notifications | 🗓️ Planejado |
 | Refresh token | 🗓️ Planejado |
-| Testes e2e | 🗓️ Pendente |
+| Testes e2e (24 testes, PostgreSQL exclusivo, Supertest) | ✅ Implementado e validado |
 
 Detalhes em [docs/STATUS.md](docs/STATUS.md).
 

@@ -108,14 +108,24 @@ npm run test:watch
 
 # Executar com relatório de cobertura
 npm run test:cov
+
+# Preparar banco e2e (aplicar migrations) e executar testes e2e
+npm run test:e2e
+
+# Executar testes e2e em modo CI
+npm run test:e2e:ci
 ```
+
+> **Importante:** `npm run test:e2e` requer PostgreSQL rodando, `DATABASE_URL_TEST` definida apontando para um banco com sufixo `_e2e` ou `_test`, `NODE_ENV=test` e `E2E_TEST_PASSWORD` definida. Consulte `backend/.env.example` para as variáveis necessárias.
 
 ### Estratégia de testes
 
-- **Testes unitários:** usam mocks do PrismaService. Não acessam PostgreSQL. Executam rapidamente.
-- **Testes e2e:** pendentes. Exigirão Supertest, banco PostgreSQL exclusivo e seed dedicado.
+- **Testes unitários:** usam mocks do PrismaService. Não acessam PostgreSQL. Executam rapidamente. 19 testes, 3 suítes.
+- **Testes e2e:** usam Supertest, banco PostgreSQL exclusivo (`loopclub_e2e`) e seed dedicado. 24 testes: 9 de segurança do ambiente, 3 smoke, 12 cenários HTTP.
+- **Total:** 43 testes (19 unitários + 24 e2e), todos aprovados.
 - **Cobertura:** relatório gerado em `backend/coverage/`. Este diretório é ignorado pelo `.gitignore` e não deve ser versionado.
-- **Configuração:** Jest configurado via `jest.config.cjs` (CommonJS). TypeScript para testes em `tsconfig.spec.json` (separado do tsconfig de produção).
+- **Configuração unitários:** Jest via `jest.config.cjs` + `tsconfig.spec.json`.
+- **Configuração e2e:** Jest via `jest.e2e.config.cjs` + `test/tsconfig.e2e.json`.
 - **Build de produção:** arquivos `.spec.ts` continuam excluídos do build.
 
 ### Suítes atuais

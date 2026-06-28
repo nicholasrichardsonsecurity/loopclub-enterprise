@@ -243,17 +243,26 @@ O LoopClub Enterprise é desenvolvido exclusivamente para o mercado brasileiro. 
 - Cobertura: TenantService (100%), TenantGuard (100%), CompaniesService.findAll (parcial).
 - Jest com ts-jest, configurado via `jest.config.cjs` e `tsconfig.spec.json`.
 
-### Testes e2e (pendentes)
-- Ficarão em `backend/test/`.
-- Exigirão Supertest, banco PostgreSQL exclusivo e seed dedicado.
-- Validarão o fluxo HTTP completo: autenticação → autorização → tenant isolation.
+### Testes e2e
+- Localizados em `backend/test/`.
+- Usam Supertest para requisições HTTP, Jest config separado (`jest.e2e.config.cjs`).
+- Banco PostgreSQL exclusivo (`loopclub_e2e`) — nunca usam banco de desenvolvimento.
+- Seed e2e dedicado (`seed-e2e.ts`) — 9 usuários, 3 empresas, 8 vínculos.
+- `DATABASE_URL_TEST` obrigatória, validada por `validateTestEnvironment()`.
+- Proteção destrutiva: NODE_ENV=test, sufixo _e2e/_test, host em allowlist, rejeita banco loopclub.
+- 24 testes: 9 de segurança do ambiente, 3 smoke tests, 12 cenários HTTP (autenticação, RBAC, tenant isolation).
+- Execução serial obrigatória (`--runInBand`) — banco compartilhado entre testes.
+- Comandos: `npm run test:e2e` (local), `npm run test:e2e:ci` (CI).
 
 ### CI (GitHub Actions)
 - Workflow em `.github/workflows/ci.yml` — acionado em push e pull_request para `main`.
 - Actions: `actions/checkout@v5`, `actions/setup-node@v5` com Node 24 e cache npm.
-- Etapas: `npm ci` → `npx prisma generate` → `npm test -- --runInBand` → `npm run build`.
-- Executado com sucesso no runner Linux (19 testes aprovados, build OK).
-- `DATABASE_URL` fictícia exclusivamente para geração do Prisma Client (sem PostgreSQL real).
+- PostgreSQL 16 Alpine como service container nativo com health check.
+- Etapas: `npm ci` → `npx prisma generate` → `npm test -- --runInBand` → `npm run build` → `npm run test:e2e:ci`.
+- `DATABASE_URL` placeholder fictício (apenas para prisma generate, sem conexão real).
+- `DATABASE_URL_TEST` aponta para o banco efêmero do service container.
+- Secrets: CI_POSTGRES_PASSWORD, CI_E2E_TEST_PASSWORD, CI_JWT_SECRET.
+- Executado com sucesso no runner Linux (19 testes unitários + build + 24 testes e2e).
 - Permissão mínima (`contents: read`).
 - CI dos frontends (admin-web, mobile) ainda não configurado.
 
@@ -261,6 +270,8 @@ O LoopClub Enterprise é desenvolvido exclusivamente para o mercado brasileiro. 
 - O banco de desenvolvimento nunca deve ser usado nos testes automatizados.
 - `backend/coverage/` é artefato local e está ignorado pelo `.gitignore`.
 - Arquivos `.spec.ts` não entram no build de produção.
+- Testes e2e exigem `DATABASE_URL_TEST` e `NODE_ENV=test` — recusam execução sem validação.
+- O banco e2e (`loopclub_e2e`) é criado localmente pelo desenvolvedor ou efemeramente na CI.
 
 ## Documentos de arquitetura relacionados
 

@@ -28,10 +28,17 @@ Este documento descreve as práticas de segurança atuais e planejadas do LoopCl
 - **Seed protegido:** `prisma/seed.ts` com allowlist de ambientes — permitido exclusivamente com `NODE_ENV=development` ou `NODE_ENV=test`. Qualquer outro valor (production, staging, ausente, inválido) bloqueia imediatamente com erro claro. Senha lida exclusivamente da variável `RBAC_SEED_PASSWORD`. Upsert com `update: {}` — não altera nenhum dado de usuários existentes. Nenhum token, senha, hash ou JWT_SECRET é exibido nos logs. `RBAC_SEED_PASSWORD` documentada no `.env.example` com aviso de uso exclusivo local.
 
 ### Testes automatizados
-- Testes unitários do TenantService, TenantGuard e CompaniesService criados e executados — 19 testes aprovados, 0 falhos.
-- Testes usam mocks do PrismaService — nenhum banco real foi acessado.
-- Testes unitários reduzem o risco de regressões no isolamento multiempresa, mas não substituem validação HTTP e2e.
-- Autenticação (JwtAuthGuard, JwtStrategy, RolesGuard) ainda não possui testes automatizados — apenas validação manual.
+- **Testes unitários:** 19 testes aprovados (TenantService, TenantGuard, CompaniesService), usando mocks do PrismaService — nenhum banco real acessado.
+- **Testes e2e:** 24 testes aprovados (9 segurança do ambiente, 3 smoke, 12 cenários HTTP), usando Supertest + PostgreSQL exclusivo.
+- **Cobertura de segurança nos testes e2e:**
+  - Autenticação JWT (login, sem token → 401, token inválido → 401) — cenários C01, C09, C10.
+  - RBAC (employee → 403, client → 403) — cenários C05, C06.
+  - Tenant isolation (sem vínculo → 403, múltiplos vínculos → 403, empresa inativa → 403, vínculo inativo → 403) — cenários C07, C08, C11, C12.
+  - Isolamento de dados entre tenants (Owner Alpha vê só Alpha, Owner Beta vê só Beta) — cenários C03, C04.
+- **Proteção do ambiente de teste:**
+  - `validateTestEnvironment()` recusa execução se NODE_ENV != test, DATABASE_URL_TEST ausente, banco = loopclub, banco sem sufixo _e2e/_test, host não autorizado, ou DATABASE_URL_TEST igual a DATABASE_URL.
+  - `resetTestDatabase()` só executa após validação do ambiente.
+  - Seed e2e com `E2E_TEST_PASSWORD` lida de variável de ambiente — nunca fixa no código.
 
 ### Banco e ORM
 - **Prevenção SQL injection:** Prisma ORM usa queries parametrizadas

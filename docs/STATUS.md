@@ -1,6 +1,6 @@
 # Status do Desenvolvimento
 
-Atualizado em: 27/06/2026
+Atualizado em: 28/06/2026
 
 **Legenda:**
 
@@ -39,7 +39,7 @@ Atualizado em: 27/06/2026
 
 ### RBAC — validação manual completa da matriz de permissões
 
-**Status:** `implementado` e `validado manualmente`. Build aprovado. Testes automatizados pendentes.
+**Status:** `implementado` e `validado manualmente`. Build aprovado. Matriz RBAC também validada por testes e2e automatizados (12 cenários HTTP com Supertest).
 
 A matriz RBAC foi validada manualmente via `curl` contra todos os 4 perfis (admin, company_owner, employee, client) em todas as 6 rotas protegidas. A validação confirmou a separação clara entre:
 
@@ -115,36 +115,62 @@ Primeira camada de isolamento multiempresa, validada exclusivamente na infraestr
 | CompaniesService (findAll) | 5 | ✅ 5 passed | 81% (parcial) |
 | **Total** | **19** | **✅ 19 aprovados, 0 falhos** | — |
 
-**Comandos disponíveis:**
-- `npm test` — executa testes unitários
-- `npm run test:watch` — modo watch para desenvolvimento
-- `npm run test:cov` — executa com relatório de cobertura
+#### Testes e2e automatizados — validado
 
-**Observações:**
-- Nenhum banco de dados foi acessado durante os testes.
-- Nenhum seed foi executado.
-- Nenhum código funcional precisou ser corrigido.
-- Jest e ts-jest executaram sem warnings de compatibilidade.
-- `backend/coverage/` é artefato local ignorado pelo .gitignore.
-- Testes e2e com Supertest e banco PostgreSQL exclusivo continuam pendentes.
+Infraestrutura completa de testes e2e com Supertest, Jest config separado (`jest.e2e.config.cjs`), PostgreSQL exclusivo (`loopclub_e2e`) e seed dedicado (`seed-e2e.ts`).
+
+| Categoria | Testes | Status |
+|-----------|:------:|:------:|
+| Segurança do ambiente (validateTestEnvironment) | 9 | ✅ 9 passed |
+| Smoke tests de infraestrutura | 3 | ✅ 3 passed |
+| Cenários HTTP (autenticação, RBAC, tenant isolation) | 12 | ✅ 12 passed |
+| **Total e2e** | **24** | **✅ 24 aprovados, 0 falhos** |
+
+**12 cenários HTTP validados:**
+1. Login do administrador retorna 200 com accessToken
+2. Administrador vê todas as 3 empresas
+3. Owner Alpha vê somente Empresa Alpha
+4. Owner Beta vê somente Empresa Beta
+5. Employee recebe 403 (RolesGuard)
+6. Client recebe 403 (RolesGuard)
+7. Owner sem vínculo recebe 403 (TenantGuard)
+8. Owner com múltiplos vínculos recebe 403 (TenantGuard)
+9. Requisição sem token recebe 401 (JwtAuthGuard)
+10. Token inválido recebe 401 (JwtAuthGuard)
+11. Owner de empresa inativa recebe 403 (TenantGuard)
+12. Owner com vínculo inativo recebe 403 (TenantGuard)
+
+**Total geral: 43 testes aprovados** (19 unitários + 24 e2e).
+
+**Comandos disponíveis para e2e:**
+- `npm run test:e2e` — prepara banco, aplica migrations, limpa, seed e executa os 24 testes e2e (local)
+- `npm run test:e2e:ci` — mesmo fluxo, com output otimizado para CI
+
+**Infraestrutura e2e implementada:**
+- Supertest + `@types/supertest` para requisições HTTP
+- Jest isolado via `jest.e2e.config.cjs` (execução serial, `--runInBand`)
+- PostgreSQL exclusivo (`loopclub_e2e`) — nunca usa banco de desenvolvimento
+- Seed e2e exclusivo (`test/helpers/seed-e2e.ts`) — 9 usuários, 3 empresas, 8 vínculos
+- `DATABASE_URL_TEST` obrigatória, validada antes de qualquer operação
+- `NODE_ENV=test` obrigatório, validado cumulativamente
+- Proteção destrutiva: valida host (localhost/127.0.0.1/postgres), sufixo do banco (_e2e/_test), rejeita banco de desenvolvimento (`loopclub`)
+- `resetTestDatabase()` — TRUNCATE CASCADE em todas as 11 tabelas
+- Migrations aplicadas com `prisma migrate deploy` (nunca `prisma migrate dev`)
+- `E2E_TEST_PASSWORD` lida de variável de ambiente — nunca fixa no código
+- 9 testes negativos de segurança comprovam que as proteções funcionam
 
 #### Pendências (não declarar como concluído)
 - Isolamento em POST/PATCH companies — não implementado (rotas exclusivas admin, sem tenant).
 - Rota empresarial permitida para employee — nenhuma existe ainda.
-- Validação HTTP de vínculo inativo — só testável via banco.
-- Validação HTTP de empresa inativa — só testável via banco.
+- Validação HTTP de vínculo inativo — coberto por testes e2e (C12).
+- Validação HTTP de empresa inativa — coberto por testes e2e (C11).
 - GET /companies/:id com proteção contra acesso cruzado — endpoint não existe.
 - AuditLog para inconsistências de tenant — não implementado.
 - Permissões para CompanyUserRole.manager — não definidas.
 - Seleção explícita de tenant para múltiplas empresas — adiada.
-- Testes e2e com Supertest — pendentes (fase 2).
-- Banco PostgreSQL exclusivo para testes — pendente.
-- Seed exclusivo para e2e — pendente.
-- Testes automatizados do JwtAuthGuard — pendentes.
-- Testes automatizados da JwtStrategy — pendentes.
-- Testes automatizados do RolesGuard — pendentes.
-- Cobertura de create e updateStatus no CompaniesService — pendente.
-- Testes HTTP automatizados do GET /companies — pendentes.
+- Cobertura de create e updateStatus no CompaniesService — pendente (testes unitários).
+- Testes e2e de JwtAuthGuard e JwtStrategy via autenticação — cobertos indiretamente pelos cenários C01, C09, C10.
+- Testes e2e do RolesGuard — cobertos pelos cenários C05, C06.
 
 #### Regras de validação do TenantService
 - Zero vínculos ativos → 403 "Nenhum vínculo empresarial encontrado."
@@ -234,7 +260,7 @@ Primeira camada de isolamento multiempresa, validada exclusivamente na infraestr
 
 - [ ] **Validar Docker Compose** — `docker compose up -d postgres` não foi executado nesta sessão.
 - [ ] **Validar conexão Prisma** — `prisma migrate dev` não foi reexecutado para confirmar consistência.
-- **Testes automatizados** — 3 arquivos `.spec.ts` (TenantService, TenantGuard, CompaniesService). CI configurado via GitHub Actions (`.github/workflows/ci.yml`) — executado com sucesso no runner Linux (Node 24, npm ci, prisma generate, 19 testes, build OK).
+- **Testes automatizados** — 43 testes totais (19 unitários + 24 e2e). CI configurado via GitHub Actions (`.github/workflows/ci.yml`) — executa testes unitários, build e testes e2e com PostgreSQL 16 efêmero.
 
 ### Requisitos transversais (permanentes)
 
@@ -259,7 +285,7 @@ Primeira camada de isolamento multiempresa, validada exclusivamente na infraestr
 
 - [x] Guardas JWT (JwtAuthGuard) em users e companies — `implementado e validado`
 - [x] **Infraestrutura inicial de testes unitários (Jest + ts-jest)** — `implementado e validado`. 3 suítes, 19 testes, 19 aprovados. Configuração separada em jest.config.cjs e tsconfig.spec.json. Build de produção continua excluindo arquivos .spec.ts. Nenhum banco acessado. Cobertura: TenantService 100%, TenantGuard 100%, CompaniesService parcial. Supertest não instalado, testes e2e pendentes.
-- [x] **CI GitHub Actions (workflow do backend)** — `implementado e validado`. `.github/workflows/ci.yml` com actions/checkout@v5, actions/setup-node@v5, Node 24, cache npm, npm ci, prisma generate, 19 testes aprovados, build OK. Execução real no runner Linux validada. DATABASE_URL fictícia para geração do Prisma Client. Permissão mínima (contents: read).
+- [x] **CI GitHub Actions (workflow do backend)** — `implementado e validado`. `.github/workflows/ci.yml` com actions/checkout@v5, actions/setup-node@v5, Node 24, cache npm, npm ci, prisma generate, 19 testes aprovados, build OK. Execução real no runner Linux validada. PostgreSQL 16 Alpine via service container nativo com health check. 24 testes e2e executados via `npm run test:e2e:ci`. DATABASE_URL fictícia para geração do Prisma Client. DATABASE_URL_TEST aponta para o banco efêmero do service container. Permissão mínima (contents: read). Secrets usados: CI_POSTGRES_PASSWORD, CI_E2E_TEST_PASSWORD, CI_JWT_SECRET.
 - [x] RolesGuard com decorator @Roles (RBAC) — `implementado e validado`
 - [ ] Validação de token expirado — pendente de teste específico
 - [ ] Refresh token com rotação e revogação
@@ -297,8 +323,7 @@ Primeira camada de isolamento multiempresa, validada exclusivamente na infraestr
 - [ ] Push notifications (global, por perfil/empresa, agendamento, opt-out, auditoria)
 - [ ] Relatórios contábeis (faturamento, notas, pagamentos, inadimplência, CSV/XLSX)
 - [ ] Deploy em produção
-- [ ] Testes automatizados (unitários, integração, e2e)
-- [ ] Expandir a CI para testes e2e, frontends, lint, análise de segurança e deploy
+- [ ] Expandir a CI para frontends, lint e análise de segurança
 - [ ] Docker para serviços (não só banco)
 - [ ] Revisão jurídica da documentação LGPD
 - [ ] Implementação das entidades LGPD (UserConsent, DataSubjectRequest, RefreshToken, etc.)

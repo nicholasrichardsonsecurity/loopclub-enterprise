@@ -322,3 +322,53 @@ Este documento registra as principais decisões arquiteturais do projeto, usando
 - Positivas: validação automática em todo PR; redução de risco de merge quebrado; feedback rápido.
 - Negativas: tempo adicional em cada push/PR (estimado < 2 min com cache); necessidade de manter o workflow atualizado.
 - Riscos: primeira execução no GitHub pode revelar diferenças entre ambiente local (Windows) e runner (Linux). NestJS, Prisma e Jest são cross-platform, então o risco é baixo.
+
+---
+
+## ADR-021 — CI com PostgreSQL service container e testes e2e
+
+**Status:** Aceito
+
+**Contexto:** Os testes unitários não validam o fluxo HTTP real (autenticação, RBAC, guards, Prisma real). Era necessário executar testes e2e com banco PostgreSQL real dentro do GitHub Actions.
+
+**Decisão:** Adicionar PostgreSQL 16 Alpine como service container nativo do GitHub Actions no workflow existente. Health check via `pg_isready`. Os testes e2e usam `DATABASE_URL_TEST` apontando para o banco efêmero do service container. A `DATABASE_URL` principal continua sendo um placeholder fictício usado apenas para `prisma generate`. Secrets do repositório: `CI_POSTGRES_PASSWORD`, `CI_E2E_TEST_PASSWORD`, `CI_JWT_SECRET`.
+
+**Detalhes:**
+- Service container com imagem oficial `postgres:16-alpine`, porta `5432:5432`.
+- Etapa `npm run test:e2e:ci` adicionada após o build.
+- `DATABASE_URL_TEST` validada por `validateTestEnvironment()` antes de qualquer operação.
+- Seed e2e exclusivo com senha lida de `E2E_TEST_PASSWORD` (nunca fixa no código).
+- 24 testes e2e executados serialmente com `--runInBand`.
+- Timeout do job aumentado para 15 minutos.
+
+**Consequências:**
+- Positivas: validação completa do fluxo HTTP com banco real; detecção de regressões em guards, RBAC e tenant isolation; ambiente isolado e descartável.
+- Negativas: tempo de execução maior (~3-5 min com PostgreSQL service); três secrets precisam ser configurados manualmente no repositório.
+- Riscos: indisponibilidade do service container (health check com retry mitiga); diferenças entre PostgreSQL local (Windows) e do container (Linux Alpine) — schema e migrations são compatíveis.
+
+---
+
+## ADR-022 — Infraestrutura de testes e2e com Supertest e banco PostgreSQL exclusivo
+
+**Status:** Aceito
+
+**Contexto:** O projeto precisava de testes que validassem o fluxo HTTP completo — desde a requisição até a resposta do banco real — sem mockar Prisma, guards ou serviços. Era necessário garantir isolamento total entre banco de desenvolvimento e banco de testes.
+
+**Decisão:** Criar infraestrutura completa de testes e2e usando Supertest + Jest config separado + PostgreSQL exclusivo (`loopclub_e2e`). O banco é validado antes de qualquer operação (`validateTestEnvironment()`), limpo entre execuções (`resetTestDatabase()`) e semeado com dados mínimos dedicados (`seed-e2e.ts`). Nove proteções de segurança impedem execução acidental contra banco de desenvolvimento.
+
+**Detalhes:**
+- `jest.e2e.config.cjs` separado do config de unitários.
+- `test/tsconfig.e2e.json` para compilação dos testes e2e.
+- `test/helpers/test-environment.ts` — validação cumulativa (NODE_ENV, DATABASE_URL_TEST, sufixo, host, conflito).
+- `test/helpers/test-database.ts` — `resetTestDatabase()` com TRUNCATE CASCADE.
+- `test/helpers/seed-e2e.ts` — 9 usuários, 3 empresas, 8 vínculos. Senha de `E2E_TEST_PASSWORD`.
+- `test/helpers/auth-e2e.ts` — helper `loginAs()` para autenticação.
+- `test/helpers/assertions-e2e.ts` — helpers `getCompanies()` e `getCompaniesUnauthenticated()`.
+- `test/helpers/prepare-e2e.ts` — aplica migrations existentes com `prisma migrate deploy`.
+- 24 testes: 9 de segurança, 3 smoke, 12 cenários HTTP.
+- `cross-env` para scripts multiplataforma.
+
+**Consequências:**
+- Positivas: validação real do fluxo HTTP; isolamento completo do banco de desenvolvimento; proteções de segurança comprovadas por testes negativos; seed e2e não reutiliza dados de desenvolvimento.
+- Negativas: PostgreSQL adicional necessário para execução local; seed e2e precisa ser mantido sincronizado com o schema; execução serial obrigatória.
+- Riscos: esquecer de definir `DATABASE_URL_TEST` (validação recusa execução); banco `loopclub_e2e` pode não existir localmente (criação manual necessária).

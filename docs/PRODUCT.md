@@ -99,6 +99,41 @@ O LoopClub é uma plataforma SaaS multiempresa de fidelização e retenção de 
 - Multi-tenant nativo: dados isolados por `companyId`
 - Flexível para pequenos negócios: planos simples e gestão manual
 
+### Hipóteses de diferenciais futuros (não implementados)
+
+Os itens abaixo são hipóteses de diferenciação e roadmap, não funcionalidades implementadas. Devem ser validadas com clientes reais antes do desenvolvimento.
+
+| Diferencial | Descrição | Status |
+|-------------|-----------|--------|
+| Simulador de custo e rentabilidade | Calculadora de retorno do programa de fidelidade | Hipótese |
+| Assistente guiado de criação | Wizard de configuração do primeiro programa | Hipótese |
+| Centro de implantação | Checklist e acompanhamento do onboarding | Hipótese |
+| Academia LoopClub | Treinamentos, tutoriais e certificação | Hipótese |
+| Modo balcão | Interface otimizada para atendimento presencial | Hipótese |
+| Experiência por link/PWA | Carteira do cliente sem instalação de app | Hipótese |
+| Carteira única multiempresa | Acumular pontos em várias empresas com um único login | Hipótese |
+| Central de LGPD | Ferramentas de compliance para o cliente empresarial | Hipótese |
+| Antifraude | Detecção de uso indevido de pontos | Hipótese |
+| Campanhas com proteção de margem | Promoções que não comprometem a rentabilidade | Hipótese |
+| Modelos por segmento | Programas pré-configurados para segmentos específicos | Hipótese |
+| Assistente de campanhas com IA | Sugestão de regras e recompensas com revisão humana | Hipótese |
+
+### Hipóteses de modelo comercial (não implementado)
+
+Os valores abaixo são hipóteses comerciais, não preços definitivos. Nenhum plano, faturamento ou contratação automática está implementado.
+
+| Plano | Preço hipotético | Modelo |
+|-------|-------------------|--------|
+| Essencial | R$ 129/mês | Autoimplantação guiada |
+| Profissional | R$ 249/mês | Autoimplantação guiada |
+| Premium | R$ 449/mês | Implantação assistida |
+| Enterprise | a partir de R$ 899/mês | Implantação assistida |
+
+- **Lançamento:** 50% de desconto na implantação (hipótese)
+- **Modelo:** venda consultiva inicial, migração futura para contratação automática
+- **Treinamento:** padrão e enxuto, com automação progressiva
+- **Site institucional e comercial:** pendente
+
 ## Mercado e padrões brasileiros
 
 O LoopClub Enterprise é desenvolvido exclusivamente para o mercado brasileiro. Todos os padrões de apresentação, validação e armazenamento seguem as normas e formatos nacionais.

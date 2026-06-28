@@ -8,6 +8,14 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 ### Adicionado
 
+- **Infraestrutura completa de testes e2e** — Supertest, Jest config separado (`jest.e2e.config.cjs`), PostgreSQL exclusivo (`loopclub_e2e`), seed e2e dedicado (`seed-e2e.ts`), proteção destrutiva de ambiente (`validateTestEnvironment()`), reset de banco (`resetTestDatabase()`). 24 testes e2e: 9 de segurança do ambiente, 3 smoke tests de infraestrutura, 12 cenários HTTP de autenticação, RBAC e isolamento multiempresa.
+- **Helper de autenticação e2e** — `auth-e2e.ts` com função `loginAs()`, reduz duplicação de login nos cenários.
+- **Helper de assertions e2e** — `assertions-e2e.ts` com `getCompanies()` e `getCompaniesUnauthenticated()`.
+- **Scripts e2e** — `npm run test:e2e` (prepara banco + executa testes), `npm run test:e2e:ci` (modo CI).
+- **GitHub Actions com PostgreSQL service container** — CI agora executa 19 testes unitários + build + 24 testes e2e com PostgreSQL 16 Alpine efêmero. Secrets: CI_POSTGRES_PASSWORD, CI_E2E_TEST_PASSWORD, CI_JWT_SECRET.
+- **Identidade visual aprovada** — cores `#6D28D9`, `#4C1D95`, `#14B8A6`, tipografia Inter, símbolo de elos sobrepostos.
+- **Estratégia comercial (hipóteses)** — planos Essencial, Profissional, Premium, Enterprise com preços sugeridos; diferenciais de roadmap documentados como hipóteses a validar.
+
 - JwtStrategy com validação de assinatura, expiração e payload (sub, role)
 - JwtAuthGuard com suporte a `@Public()` para rotas públicas
 - Decorator `@Public()` para marcar rotas que não exigem autenticação
@@ -21,6 +29,11 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - **Primeira camada de isolamento multiempresa no módulo de empresas via CompanyUser** — TenantModule, TenantService, TenantGuard e decorator `@RequireCompany()`. PrismaModule global. Resolução do companyId por requisição via banco (sem companyId no JWT). GET /companies: admin vê todas, company_owner vê somente sua empresa vinculada. Validação de coerência User.role × CompanyUser.role. Bloqueio de zero vínculos, múltiplos vínculos e empresa inativa. Nenhuma migration, schema inalterado. Seed atualizado com Empresa Alpha, Beta, usuários multi-vínculo e sem vínculo. Build aprovado. 9 testes HTTP validados (100%).
 
 ### Validado
+
+- **43 testes aprovados no total** (19 unitários + 24 e2e), sendo:
+  - 9 testes negativos de segurança do ambiente de teste
+  - 3 smoke tests de infraestrutura (NestJS, banco e2e, health check)
+  - 12 cenários HTTP (login admin, RBAC: admin/owner/employee/client, tenant isolation: sem vínculo, múltiplos vínculos, empresa inativa, vínculo inativo; 401 sem token; 401 token inválido)
 
 - `POST /auth/register` — retorno HTTP 201 (cadastro novo) e HTTP 409 (e-mail duplicado) validados manualmente via `curl`
 - `POST /auth/login` — retorno HTTP 200 (credenciais válidas) e HTTP 401 (credenciais inválidas) validados manualmente via `curl`

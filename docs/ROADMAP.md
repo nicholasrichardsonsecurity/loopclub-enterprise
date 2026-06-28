@@ -17,18 +17,24 @@ Roteiro de desenvolvimento do LoopClub Enterprise v1.0.
 - [x] App Flutter (esqueleto)
 - [x] Docker Compose PostgreSQL
 - [x] Documentação viva
+- [x] JWT Guards + RolesGuard (RBAC)
+- [x] Primeira camada de isolamento multiempresa (GET /companies)
+- [x] Testes unitários (3 suítes, 19 testes)
+- [x] Testes e2e (Supertest + PostgreSQL exclusivo, 24 testes)
+- [x] CI GitHub Actions com testes unitários, build e e2e
 
-## Sprint 02 — Autenticação e RBAC 🔄
+## Sprint 02 — Autenticação, Segurança e Expansão 🔄
 
 **Status:** Próxima sprint
 
-- [ ] Guardas JWT nas rotas protegidas
-- [ ] RolesGuard com decorators (@Roles)
-- [ ] Refresh token
-- [ ] Seed inicial (Admin Master padrão)
-- [ ] Vincular usuário à empresa no registro
-- [ ] Testes de autenticação
-- [ ] Proteger rotas existentes
+- [ ] Refresh token com rotação e revogação
+- [ ] Vincular CompanyUser no registro (criação de vínculo empresa-usuário)
+- [ ] Rate limiting em rotas de autenticação
+- [ ] Sanitização de logs (Interceptor NestJS)
+- [ ] Registro de auditoria para ações críticas (AuditLog)
+- [ ] Testes de integração para módulo Auth
+- [ ] Estender isolamento multiempresa para demais rotas e módulos
+- [ ] Validação de token expirado (teste específico)
 
 ## Sprint 03 — Empresas, Planos e Assinaturas
 
