@@ -76,7 +76,7 @@ A matriz RBAC foi validada manualmente via `curl` contra todos os 4 perfis (admi
 
 **Status:** `implementado` e `validado manualmente`. Build aprovado.
 
-Primeira camada de isolamento multiempresa, aplicada ao módulo de empresas. Infraestrutura reutilizável (TenantModule, TenantService, TenantGuard) disponível para demais módulos.
+Primeira camada de isolamento multiempresa, validada exclusivamente na infraestrutura de tenant (TenantModule, TenantService, TenantGuard) e no GET /companies. Infraestrutura reutilizável disponível para demais módulos, mas ainda não estendida para outras rotas.
 
 #### Componentes implementados
 - **PrismaModule global** — `@Global()` registrado no AppModule, elimina instâncias duplicadas de PrismaService.
@@ -157,9 +157,9 @@ Primeira camada de isolamento multiempresa, aplicada ao módulo de empresas. Inf
 
 #### Pendências (não declarar como concluído)
 
-- Testes automatizados de RBAC — nenhum arquivo `.spec.ts` existe.
-- **Isolamento multiempresa no GET /companies** — `implementado` e `validado manualmente` (9 testes HTTP, 100% aprovados). Primeira camada aplicada ao módulo de empresas: admin vê todas; company_owner vê somente sua empresa; employee/client bloqueados pelo RolesGuard; zero vínculos, múltiplos vínculos e incoerência bloqueados pelo TenantGuard. Demais módulos e rotas ainda sem isolamento.
-- **Segregação de dados entre empresas** — `implementado e validado` no GET /companies. Rotas de block/unblock e criação de empresas continuam sem filtro de tenant (são exclusivas admin).
+- Testes automatizados específicos do RolesGuard e da matriz RBAC ainda estão pendentes. Já existem testes unitários para TenantService, TenantGuard e CompaniesService, totalizando 3 suítes e 19 testes aprovados.
+- **Isolamento multiempresa no GET /companies** — `implementado` e `validado manualmente` (9 testes HTTP, 100% aprovados). Primeira camada aplicada exclusivamente ao módulo de empresas: admin vê todas; company_owner vê somente sua empresa; employee/client bloqueados pelo RolesGuard; zero vínculos, múltiplos vínculos e incoerência bloqueados pelo TenantGuard. Demais módulos e rotas ainda sem isolamento.
+- **Segregação de dados entre empresas** — `implementado e validado` exclusivamente no GET /companies. Rotas de block/unblock e criação de empresas continuam sem filtro de tenant (são exclusivas admin).
 - Refresh token com rotação — pendente.
 - Auditoria de ações críticas (AuditLog) — pendente.
 - Conformidade integral com LGPD — pendente.
@@ -298,7 +298,7 @@ Primeira camada de isolamento multiempresa, aplicada ao módulo de empresas. Inf
 - [ ] Relatórios contábeis (faturamento, notas, pagamentos, inadimplência, CSV/XLSX)
 - [ ] Deploy em produção
 - [ ] Testes automatizados (unitários, integração, e2e)
-- [ ] CI/CD com GitHub Actions
+- [ ] Expandir a CI para testes e2e, frontends, lint, análise de segurança e deploy
 - [ ] Docker para serviços (não só banco)
 - [ ] Revisão jurídica da documentação LGPD
 - [ ] Implementação das entidades LGPD (UserConsent, DataSubjectRequest, RefreshToken, etc.)

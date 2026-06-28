@@ -54,9 +54,10 @@ O LoopClub oferece um aplicativo único onde clientes acumulam pontos e trocam p
 |---------|--------|
 | Autenticação com JWT e RBAC | ✅ Implementado e validado |
 | Gestão de empresas | ✅ Implementado |
-| Isolamento multiempresa (GET /companies) | ✅ Parcialmente implementado e validado no módulo de empresas |
+| Isolamento multiempresa — primeira camada validada no módulo de empresas (GET /companies) | ✅ Implementado e validado (infraestrutura de tenant + GET /companies) |
 | PrismaModule global, TenantModule, TenantService, TenantGuard | ✅ Implementado |
-| 3 suítes de testes unitários (19 testes) | ✅ Implementado e validado |
+| 3 suítes de testes unitários (19 testes aprovados) | ✅ Implementado e validado |
+| CI do backend validada no GitHub Actions (Node 24) | ✅ Implementado e validado |
 | Gestão de usuários | ✅ Implementado |
 | Helmet, CORS, hardening | ✅ Implementado e validado |
 | App mobile (Flutter) | 🎨 Interface mockada |
@@ -64,6 +65,7 @@ O LoopClub oferece um aplicativo único onde clientes acumulam pontos e trocam p
 | Programas de fidelidade | 🗓️ Planejado |
 | QR Code dinâmico | 🗓️ Planejado |
 | Pagamentos e NFS-e | 🗓️ Planejado |
+| Testes e2e | 🗓️ Pendente |
 | Push notifications | 🗓️ Planejado |
 
 ---
@@ -157,7 +159,7 @@ loopclub-enterprise/
 
 ### Pré-requisitos
 
-- Node.js >= 18, npm >= 9
+- Node.js >= 20 (recomendado Node 24, versão usada na CI), npm >= 9
 - PostgreSQL 16 (local ou Docker)
 - Flutter SDK >= 3.4.0 (opcional)
 - Docker Desktop (opcional)
@@ -282,9 +284,10 @@ O LoopClub adota privacy by design e security by design desde a concepção. A i
 | Swagger /docs | ✅ Implementado e validado |
 | Auth register/login | ✅ Implementado e validado |
 | TenantModule, TenantGuard, TenantService | ✅ Implementado |
-| Isolamento multiempresa (GET /companies) | ✅ Implementado e validado |
+| Isolamento multiempresa — primeira camada validada no módulo de empresas | ✅ Implementado e validado (infraestrutura de tenant + GET /companies) |
 | PrismaModule global | ✅ Implementado |
-| Testes unitários (3 suítes, 19 testes) | ✅ Implementado e validado |
+| Testes unitários (3 suítes, 19 testes aprovados) | ✅ Implementado e validado |
+| CI do backend validada no GitHub Actions (Node 24) | ✅ Implementado e validado |
 | App mobile Flutter | 🎨 Interface mockada |
 | Admin web Next.js | 🎨 Interface mockada |
 | Docker Compose | 🧩 Implementado, pendente de validação |
