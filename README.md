@@ -50,10 +50,13 @@ O LoopClub oferece um aplicativo único onde clientes acumulam pontos e trocam p
 
 ## Principais Recursos
 
-| Recurso | Status |
+| Recursos atuais | Status |
 |---------|--------|
 | Autenticação com JWT e RBAC | ✅ Implementado e validado |
 | Gestão de empresas | ✅ Implementado |
+| Isolamento multiempresa (GET /companies) | ✅ Parcialmente implementado e validado no módulo de empresas |
+| PrismaModule global, TenantModule, TenantService, TenantGuard | ✅ Implementado |
+| 3 suítes de testes unitários (19 testes) | ✅ Implementado e validado |
 | Gestão de usuários | ✅ Implementado |
 | Helmet, CORS, hardening | ✅ Implementado e validado |
 | App mobile (Flutter) | 🎨 Interface mockada |
@@ -120,7 +123,7 @@ Diagrama detalhado em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | Mobile | Flutter — Android e iOS |
 | Backend | NestJS + TypeScript |
 | ORM | Prisma |
-| Banco | PostgreSQL 16 |
+| Banco | PostgreSQL 16 (Alpine via Docker) |
 | Admin | Next.js |
 | API | REST + Swagger / OpenAPI |
 | Versionamento | Git + GitHub |
@@ -131,7 +134,7 @@ Diagrama detalhado em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Estrutura do Projeto
 
 ```
-loopclub_enterprise_sprint01/
+loopclub-enterprise/
 ├── apps/
 │   ├── admin-web/         Next.js — painel admin
 │   └── mobile/            Flutter — app multi-perfil
@@ -140,9 +143,11 @@ loopclub_enterprise_sprint01/
 │   └── src/modules/
 │       ├── auth/          JWT, RBAC, guards
 │       ├── companies/     CRUD, block/unblock
+│       ├── prisma/        PrismaModule global
+│       ├── tenant/        TenantService, TenantGuard
 │       └── users/         Consulta de usuários
 ├── docs/                  Documentação viva
-├── docker-compose.yml     PostgreSQL 16
+├── docker-compose.yml     PostgreSQL 16 Alpine
 └── backend/.env.example     Modelo de variáveis do backend
 ```
 
@@ -225,7 +230,7 @@ A API REST do LoopClub está documentada no Swagger em `/docs` quando o servidor
 
 **Rotas públicas:** `GET /auth/health`, `POST /auth/register`, `POST /auth/login`.
 
-**Rotas protegidas:** Exigem token JWT. Acesso控制ado por RBAC conforme o perfil.
+**Rotas protegidas:** Exigem token JWT. Acesso controlado por RBAC conforme o perfil.
 
 | Rota | admin | company_owner | employee | client |
 |------|-------|---------------|----------|--------|
@@ -276,15 +281,18 @@ O LoopClub adota privacy by design e security by design desde a concepção. A i
 | Helmet + CORS + x-powered-by | ✅ Implementado e validado |
 | Swagger /docs | ✅ Implementado e validado |
 | Auth register/login | ✅ Implementado e validado |
+| TenantModule, TenantGuard, TenantService | ✅ Implementado |
+| Isolamento multiempresa (GET /companies) | ✅ Implementado e validado |
+| PrismaModule global | ✅ Implementado |
+| Testes unitários (3 suítes, 19 testes) | ✅ Implementado e validado |
 | App mobile Flutter | 🎨 Interface mockada |
 | Admin web Next.js | 🎨 Interface mockada |
 | Docker Compose | 🧩 Implementado, pendente de validação |
 | Programas de fidelidade | 🗓️ Planejado |
-| Pagamentos | 🗓️ Planejado |
-| NFS-e | 🗓️ Planejado |
+| Pagamentos e NFS-e | 🗓️ Planejado |
 | Push notifications | 🗓️ Planejado |
-| Isolamento multiempresa | 🗓️ Planejado |
 | Refresh token | 🗓️ Planejado |
+| Testes e2e | 🗓️ Pendente |
 
 Detalhes em [docs/STATUS.md](docs/STATUS.md).
 
