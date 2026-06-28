@@ -12,7 +12,9 @@
     "test": "jest --config jest.config.cjs --runInBand",
     "test:watch": "jest --config jest.config.cjs --watch",
     "test:cov": "jest --config jest.config.cjs --runInBand --coverage",
-    "prisma:seed": "ts-node --project tsconfig.seed.json prisma/seed.ts"
+    "prisma:seed": "ts-node --project tsconfig.seed.json prisma/seed.ts",
+    "test:e2e": "cross-env NODE_ENV=test ts-node test/helpers/prepare-e2e.ts && cross-env NODE_ENV=test jest --config jest.e2e.config.cjs --runInBand",
+    "test:e2e:ci": "cross-env NODE_ENV=test ts-node test/helpers/prepare-e2e.ts && cross-env NODE_ENV=test jest --config jest.e2e.config.cjs --runInBand --ci"
   },
   "prisma": {
     "seed": "ts-node --project tsconfig.seed.json prisma/seed.ts"
@@ -43,8 +45,11 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^22.5.0",
     "@types/passport-jwt": "^4.0.1",
+    "@types/supertest": "^7.2.0",
+    "cross-env": "^10.1.0",
     "jest": "^30.4.2",
     "prisma": "^5.19.1",
+    "supertest": "^7.2.2",
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"

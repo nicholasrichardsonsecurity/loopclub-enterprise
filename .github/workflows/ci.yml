@@ -19,10 +19,34 @@ jobs:
   validate-backend:
     name: Testes e build do backend
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: loopclub_e2e
+          POSTGRES_USER: loopclub_ci
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U loopclub_ci -d loopclub_e2e"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     env:
-      DATABASE_URL: postgresql://ci_user:ci_password@localhost:5432/loopclub_ci?schema=public
+      # Placeholder — nunca conectar, usado apenas para prisma generate
+      DATABASE_URL: postgresql://ci_placeholder:ci_placeholder@localhost:5432/loopclub_ci_placeholder?schema=public
+      # Banco real efêmero do service container
+      DATABASE_URL_TEST: postgresql://loopclub_ci:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/loopclub_e2e?schema=public
+      # Ambiente forçado para test (exigido por validateTestEnvironment)
+      NODE_ENV: test
+      # Senha fictícia para as contas do seed e2e
+      E2E_TEST_PASSWORD: ${{ secrets.CI_E2E_TEST_PASSWORD }}
+      # Segredo JWT fictício exclusivo da CI
+      JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
 
     steps:
       - name: Baixar o repositório
@@ -46,3 +70,6 @@ jobs:
 
       - name: Compilar o backend
         run: npm run build
+
+      - name: Executar testes e2e
+        run: npm run test:e2e:ci
