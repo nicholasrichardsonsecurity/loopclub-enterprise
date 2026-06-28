@@ -300,3 +300,25 @@ Este documento registra as principais decisões arquiteturais do projeto, usando
 - Positivas: testes rápidos sem banco; TenantService e TenantGuard com 100% de cobertura; detecção precoce de regressões; base para expansão para outros módulos.
 - Negativas: mocks do Prisma precisam ser mantidos atualizados com o schema; testes unitários não substituem e2e para validar fluxo HTTP completo.
 - Riscos: dependências Jest/ts-jest podem tornar-se incompatíveis em atualizações futuras — devem ser validadas antes de adoção.
+
+---
+
+## ADR-020 — GitHub Actions como CI do backend
+
+**Status:** Aceito
+
+**Contexto:** O projeto possuía testes unitários mas nenhum mecanismo automatizado para executá-los em push ou pull request. Era necessário garantir que todo código novo passe pelos testes e compile antes de integrar à branch principal.
+
+**Decisão:** Adotar GitHub Actions com workflow único em `.github/workflows/ci.yml`. Node 24, cache npm, execução sequencial de `npm ci`, `npx prisma generate`, `npm test -- --runInBand`, `npm run build`. Permissão mínima (`contents: read`). `DATABASE_URL` fictícia exclusivamente para geração do Prisma Client.
+
+**Detalhes:**
+- Gatilhos: push e pull_request para `main`.
+- Nenhum serviço PostgreSQL no workflow — testes unitários usam mocks.
+- Nenhum segredo ou variável real de ambiente.
+- Timeout de 10 minutos.
+- CI dos frontends (admin-web, mobile) fica para fase futura.
+
+**Consequências:**
+- Positivas: validação automática em todo PR; redução de risco de merge quebrado; feedback rápido.
+- Negativas: tempo adicional em cada push/PR (estimado < 2 min com cache); necessidade de manter o workflow atualizado.
+- Riscos: primeira execução no GitHub pode revelar diferenças entre ambiente local (Windows) e runner (Linux). NestJS, Prisma e Jest são cross-platform, então o risco é baixo.

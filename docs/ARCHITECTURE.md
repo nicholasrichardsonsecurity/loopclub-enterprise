@@ -248,6 +248,15 @@ O LoopClub Enterprise é desenvolvido exclusivamente para o mercado brasileiro. 
 - Exigirão Supertest, banco PostgreSQL exclusivo e seed dedicado.
 - Validarão o fluxo HTTP completo: autenticação → autorização → tenant isolation.
 
+### CI (GitHub Actions)
+- Workflow em `.github/workflows/ci.yml` — acionado em push e pull_request para `main`.
+- Actions: `actions/checkout@v5`, `actions/setup-node@v5` com Node 24 e cache npm.
+- Etapas: `npm ci` → `npx prisma generate` → `npm test -- --runInBand` → `npm run build`.
+- Executado com sucesso no runner Linux (19 testes aprovados, build OK).
+- `DATABASE_URL` fictícia exclusivamente para geração do Prisma Client (sem PostgreSQL real).
+- Permissão mínima (`contents: read`).
+- CI dos frontends (admin-web, mobile) ainda não configurado.
+
 ### Regras
 - O banco de desenvolvimento nunca deve ser usado nos testes automatizados.
 - `backend/coverage/` é artefato local e está ignorado pelo `.gitignore`.

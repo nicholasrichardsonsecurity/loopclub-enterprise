@@ -43,6 +43,7 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - **Princípio do menor privilégio confirmado:** cada perfil acessa exclusivamente o mínimo necessário.
 - **Swagger Bearer Auth validado** em conjunto com a matriz.
 - **3 suítes de testes unitários (Jest + ts-jest):** TenantService (9 testes, 100% cobertura), TenantGuard (5 testes, 100% cobertura), CompaniesService.findAll (5 testes). 19 testes aprovados, 0 falhos. Nenhum banco acessado. Nenhum código funcional corrigido. Nenhum warning de compatibilidade.
+- **CI GitHub Actions do backend:** `.github/workflows/ci.yml` — actions/checkout@v5, actions/setup-node@v5, Node 24, cache npm, prisma generate, 19 testes aprovados, build OK. Execução real validada no runner Linux. Permissão mínima (contents: read). DATABASE_URL fictícia para geração do Prisma Client.
 
 ### Corrigido
 

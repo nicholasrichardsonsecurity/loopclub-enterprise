@@ -8,8 +8,9 @@ Este documento descreve o fluxo de desenvolvimento do LoopClub Enterprise.
 2. Crie uma branch a partir de `main`
 3. Implemente a funcionalidade
 4. Atualize a documentação (veja política em [CONTRIBUTING.md](../CONTRIBUTING.md))
-5. Execute testes locais
-6. Abra um Pull Request
+5. Execute testes locais: `cd backend && npm test && npm run build`
+6. Abra um Pull Request para `main`
+7. O CI (GitHub Actions) validará automaticamente o backend
 
 ## Branches
 

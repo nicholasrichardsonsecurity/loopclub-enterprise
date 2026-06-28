@@ -234,7 +234,7 @@ Primeira camada de isolamento multiempresa, aplicada ao módulo de empresas. Inf
 
 - [ ] **Validar Docker Compose** — `docker compose up -d postgres` não foi executado nesta sessão.
 - [ ] **Validar conexão Prisma** — `prisma migrate dev` não foi reexecutado para confirmar consistência.
-- **Testes automatizados** — 0 arquivos `.spec.ts` no projeto (excluindo `node_modules`).
+- **Testes automatizados** — 3 arquivos `.spec.ts` (TenantService, TenantGuard, CompaniesService). CI configurado via GitHub Actions (`.github/workflows/ci.yml`) — executado com sucesso no runner Linux (Node 24, npm ci, prisma generate, 19 testes, build OK).
 
 ### Requisitos transversais (permanentes)
 
@@ -259,6 +259,7 @@ Primeira camada de isolamento multiempresa, aplicada ao módulo de empresas. Inf
 
 - [x] Guardas JWT (JwtAuthGuard) em users e companies — `implementado e validado`
 - [x] **Infraestrutura inicial de testes unitários (Jest + ts-jest)** — `implementado e validado`. 3 suítes, 19 testes, 19 aprovados. Configuração separada em jest.config.cjs e tsconfig.spec.json. Build de produção continua excluindo arquivos .spec.ts. Nenhum banco acessado. Cobertura: TenantService 100%, TenantGuard 100%, CompaniesService parcial. Supertest não instalado, testes e2e pendentes.
+- [x] **CI GitHub Actions (workflow do backend)** — `implementado e validado`. `.github/workflows/ci.yml` com actions/checkout@v5, actions/setup-node@v5, Node 24, cache npm, npm ci, prisma generate, 19 testes aprovados, build OK. Execução real no runner Linux validada. DATABASE_URL fictícia para geração do Prisma Client. Permissão mínima (contents: read).
 - [x] RolesGuard com decorator @Roles (RBAC) — `implementado e validado`
 - [ ] Validação de token expirado — pendente de teste específico
 - [ ] Refresh token com rotação e revogação
