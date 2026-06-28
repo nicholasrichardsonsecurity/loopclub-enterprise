@@ -239,7 +239,7 @@ Todos os 4 perfis (admin, company_owner, employee, client) foram testados manual
 - ~~**CORS aberto:** configurado para desenvolvimento, sem restrição~~ (corrigido — CORS configurável via `CORS_ORIGIN`)
 
 ### Funcionalidades
-- **Zero testes:** Nenhum arquivo `.spec.ts` no projeto
+- **Testes automatizados parciais:** existem 3 suítes unitárias e 19 testes aprovados para TenantService, TenantGuard e CompaniesService. Permanecem pendentes testes específicos do RolesGuard, JwtAuthGuard, JwtStrategy, testes e2e e ampliação da cobertura dos demais módulos. A CI do backend já foi executada e validada no GitHub Actions (Node 24, npm ci, prisma generate, 19 testes, build OK). O isolamento multiempresa está validado apenas na infraestrutura de tenant e no GET /companies
 - **Admin Web usa dados mockados** (sem integração com API real)
 - **App Flutter usa dados mockados** (sem integração com API real)
 - **CompanyUser não é criado no registro** — vínculo empresa-usuário não existe
