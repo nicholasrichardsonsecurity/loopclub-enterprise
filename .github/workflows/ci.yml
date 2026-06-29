@@ -1,100 +1,87 @@
 name: CI Backend
 
 on:
-push:
-branches:
-- main
-pull_request:
-branches:
-- main
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 permissions:
-contents: read
+  contents: read
 
 defaults:
-run:
-working-directory: backend
+  run:
+    working-directory: backend
 
 jobs:
-validate-backend:
-name: Testes e build do backend
-runs-on: ubuntu-latest
-timeout-minutes: 15
+  validate-backend:
+    name: Testes e build do backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
-```
-services:
-  postgres:
-    image: postgres:16-alpine
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: loopclub_e2e
+          POSTGRES_USER: loopclub_ci
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U loopclub_ci -d loopclub_e2e"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     env:
-      POSTGRES_DB: loopclub_e2e
-      POSTGRES_USER: loopclub_ci
-      POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
-    ports:
-      - 5432:5432
-    options: >-
-      --health-cmd="pg_isready -U loopclub_ci -d loopclub_e2e"
-      --health-interval=10s
-      --health-timeout=5s
-      --health-retries=5
+      DATABASE_URL: postgresql://ci_placeholder:ci_placeholder@localhost:5432/loopclub_ci_placeholder?schema=public
+      DATABASE_URL_TEST: postgresql://loopclub_ci:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/loopclub_e2e?schema=public
+      NODE_ENV: test
+      E2E_TEST_PASSWORD: ${{ secrets.CI_E2E_TEST_PASSWORD }}
+      JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
+      CUSTOMER_PII_HMAC_SECRET: ${{ secrets.CI_CUSTOMER_PII_HMAC_SECRET }}
 
-env:
-  # Placeholder usado apenas por comandos que exigem DATABASE_URL.
-  # Esse banco não deve ser criado nem acessado.
-  DATABASE_URL: postgresql://ci_placeholder:ci_placeholder@localhost:5432/loopclub_ci_placeholder?schema=public
+    steps:
+      - name: Baixar o repositório
+        uses: actions/checkout@v5
 
-  # Banco PostgreSQL efêmero do service container.
-  DATABASE_URL_TEST: postgresql://loopclub_ci:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/loopclub_e2e?schema=public
+      - name: Configurar Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
 
-  # Ambiente obrigatório para o fluxo e2e protegido.
-  NODE_ENV: test
+      - name: Instalar dependências
+        run: npm ci
 
-  # Senha fictícia utilizada exclusivamente pelas contas do seed e2e.
-  E2E_TEST_PASSWORD: ${{ secrets.CI_E2E_TEST_PASSWORD }}
+      - name: Gerar Prisma Client
+        run: npx prisma generate
 
-  # Segredo JWT exclusivo da CI.
-  JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
+      - name: Executar testes unitários
+        run: npm test -- --runInBand
 
-  # Segredo HMAC exclusivo da CI para proteção e lookup de CPF.
-  CUSTOMER_PII_HMAC_SECRET: ${{ secrets.CI_CUSTOMER_PII_HMAC_SECRET }}
+      - name: Compilar o backend
+        run: npm run build
 
-steps:
-  - name: Baixar o repositório
-    uses: actions/checkout@v5
+      - name: Validar segredo HMAC de clientes
+        shell: bash
+        run: |
+          if [ -z "$CUSTOMER_PII_HMAC_SECRET" ]; then
+            echo "CUSTOMER_PII_HMAC_SECRET ausente"
+            exit 1
+          fi
 
-  - name: Configurar Node.js
-    uses: actions/setup-node@v5
-    with:
-      node-version: 24
-      cache: npm
-      cache-dependency-path: backend/package-lock.json
+          if [ "${#CUSTOMER_PII_HMAC_SECRET}" -lt 32 ]; then
+            echo "CUSTOMER_PII_HMAC_SECRET possui menos de 32 caracteres"
+            exit 1
+          fi
 
-  - name: Instalar dependências
-    run: npm ci
+          echo "CUSTOMER_PII_HMAC_SECRET disponível e com tamanho válido"
 
-  - name: Gerar Prisma Client
-    run: npx prisma generate
-
-  - name: Executar testes unitários
-    run: npm test -- --runInBand
-
-  - name: Compilar o backend
-    run: npm run build
-
-  - name: Validar segredo HMAC de clientes
-    shell: bash
-    run: |
-      if [ -z "$CUSTOMER_PII_HMAC_SECRET" ]; then
-        echo "CUSTOMER_PII_HMAC_SECRET ausente"
-        exit 1
-      fi
-
-      if [ "${#CUSTOMER_PII_HMAC_SECRET}" -lt 32 ]; then
-        echo "CUSTOMER_PII_HMAC_SECRET possui menos de 32 caracteres"
-        exit 1
-      fi
-
-      echo "CUSTOMER_PII_HMAC_SECRET disponível e com tamanho válido"
-
-  - name: Executar testes e2e
-    run: npm run test:e2e:ci
-```
+      - name: Executar testes e2e
+        run: npm run test:e2e:ci
+:::
