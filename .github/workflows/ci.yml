@@ -71,5 +71,20 @@ jobs:
       - name: Compilar o backend
         run: npm run build
 
+      - name: Validar segredo HMAC de clientes
+        shell: bash
+        run: |
+          if [ -z "$CUSTOMER_PII_HMAC_SECRET" ]; then
+            echo "CUSTOMER_PII_HMAC_SECRET ausente"
+            exit 1
+          fi
+
+          if [ "${#CUSTOMER_PII_HMAC_SECRET}" -lt 32 ]; then
+            echo "CUSTOMER_PII_HMAC_SECRET possui menos de 32 caracteres"
+            exit 1
+          fi
+
+          echo "CUSTOMER_PII_HMAC_SECRET disponível e com tamanho válido"
+
       - name: Executar testes e2e
         run: npm run test:e2e:ci
