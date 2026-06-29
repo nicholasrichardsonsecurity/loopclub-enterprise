@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
@@ -12,6 +13,13 @@ import { CreateCustomerDto } from './dto/create-customer.dto';
 import { normalizeBrazilianPhoneToE164, PhoneError } from './helpers/phone.helper';
 import { isValidCpf, generateCpfLookupHash, getCpfLastDigits, CpfError } from './helpers/cpf.helper';
 import { CompanyCustomerSource, Prisma } from '@prisma/client';
+
+export class BirthDateError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BirthDateError';
+  }
+}
 
 export interface CreateCustomerResult {
   companyCustomerId: string;
@@ -57,14 +65,26 @@ export class CustomersService {
     await this.validateCompanyAndActor(companyId, actorUserId);
 
     // 0b. Validar birthDate se fornecido
-    const birthDate = dto.birthDate ? this.validateBirthDate(dto.birthDate) : undefined;
+    let birthDate: Date | undefined;
+    if (dto.birthDate) {
+      try {
+        birthDate = this.validateBirthDate(dto.birthDate);
+      } catch (err) {
+        if (err instanceof BirthDateError) {
+          throw new BadRequestException(err.message);
+        }
+        throw err;
+      }
+    }
 
     // 1. Normalizar telefone
     let phoneE164: string;
     try {
       phoneE164 = normalizeBrazilianPhoneToE164(dto.phone);
     } catch (err) {
-      if (err instanceof PhoneError) throw err;
+      if (err instanceof PhoneError) {
+        throw new BadRequestException('Telefone inválido');
+      }
       throw new PhoneError('Telefone inválido');
     }
 
@@ -72,7 +92,15 @@ export class CustomersService {
     const emailNormalized = dto.email ? dto.email.toLowerCase().trim() : null;
 
     // 3-5. Processar CPF (se fornecido)
-    const cpfData = this.processCpf(dto.cpf);
+    let cpfData: { hash: string; lastDigits: string } | null = null;
+    try {
+      cpfData = this.processCpf(dto.cpf);
+    } catch (err) {
+      if (err instanceof CpfError) {
+        throw new BadRequestException('CPF inválido');
+      }
+      throw err;
+    }
 
     return this.prisma.$transaction(async (tx) => {
       // 6. Buscar Customer pelo telefone
@@ -243,7 +271,7 @@ export class CustomersService {
 
   private validateBirthDate(birthDate: string): Date {
     if (!BIRTHDATE_REGEX.test(birthDate)) {
-      throw new PhoneError('Data de nascimento inválida');
+      throw new BirthDateError('Data de nascimento inválida');
     }
 
     const [y, m, d] = birthDate.split('-').map(Number);
@@ -256,15 +284,15 @@ export class CustomersService {
       parsed.getUTCMonth() !== m - 1 ||
       parsed.getUTCDate() !== d
     ) {
-      throw new PhoneError('Data de nascimento inválida');
+      throw new BirthDateError('Data de nascimento inválida');
     }
 
     if (parsed > new Date()) {
-      throw new PhoneError('Data de nascimento não pode ser futura');
+      throw new BirthDateError('Data de nascimento não pode ser futura');
     }
 
     if (y < MAX_BIRTH_YEAR) {
-      throw new PhoneError('Data de nascimento inválida');
+      throw new BirthDateError('Data de nascimento inválida');
     }
 
     return parsed;

@@ -1,7 +1,17 @@
 import request from 'supertest';
 import { setupE2e, type E2eContext } from './helpers/setup';
 import { loginAs } from './helpers/auth-e2e';
-import { getCompanies, getCompaniesUnauthenticated } from './helpers/assertions-e2e';
+import {
+  getCompanies,
+  getCompaniesUnauthenticated,
+  postCustomer,
+  postCustomerUnauthenticated,
+  assertNoSensitiveFields,
+  findCustomerByPhone,
+  findCompanyCustomer,
+  findAuditLog,
+  countCompanyCustomers,
+} from './helpers/assertions-e2e';
 
 describe('Testes e2e do LoopClub', () => {
   let ctx: E2eContext;
@@ -191,6 +201,271 @@ describe('Testes e2e do LoopClub', () => {
       const token = await loginAs(ctx.app, 'inactive.link.e2e@loopclub.dev');
       const response = await getCompanies(ctx.app, token);
       expect(response.status).toBe(403);
+    });
+  });
+
+  // =======================================================================
+  // Customers — POST /customers
+  // =======================================================================
+
+  describe('POST /customers — Criação de cliente', () => {
+    // Helper: resolve company ID by document
+    let alphaCompanyId: string;
+    let betaCompanyId: string;
+    let blockedCompanyId: string;
+
+    beforeAll(async () => {
+      const companies = await ctx.prisma.company.findMany({
+        where: { document: { in: ['00000000000191', '00000000000272', '00000000000353'] } },
+        select: { id: true, document: true },
+      });
+      alphaCompanyId = companies.find((c) => c.document === '00000000000191')!.id;
+      betaCompanyId = companies.find((c) => c.document === '00000000000272')!.id;
+      blockedCompanyId = companies.find((c) => c.document === '00000000000353')!.id;
+    });
+
+    // --- C13: Owner Alpha cria cliente novo → 201 ---
+    it('C13: owner Alpha cria cliente novo → 201', async () => {
+      const token = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+      const response = await postCustomer(ctx.app, token, {
+        name: 'Maria C13',
+        phone: '(81) 99999-1301',
+        email: 'maria.c13@test.loopclub.dev',
+        internalCode: 'C13-001',
+      });
+
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty('companyCustomerId');
+      expect(response.body).toHaveProperty('customerId');
+      expect(response.body).toHaveProperty('name', 'Maria C13');
+      expect(response.body).toHaveProperty('phoneE164', '+5581999991301');
+      expect(response.body).toHaveProperty('emailNormalized', 'maria.c13@test.loopclub.dev');
+      expect(response.body).toHaveProperty('internalCode', 'C13-001');
+      expect(response.body).toHaveProperty('status', 'active');
+      expect(response.body).toHaveProperty('source', 'manual');
+      expect(response.body).toHaveProperty('isNewCustomer', true);
+      expect(response.body.joinedAt).toBeDefined();
+      assertNoSensitiveFields(response.body);
+
+      // Verificar no banco
+      const customer = await findCustomerByPhone(ctx.prisma, '+5581999991301');
+      expect(customer).toBeDefined();
+      expect(customer!.name).toBe('Maria C13');
+
+      const link = await findCompanyCustomer(ctx.prisma, customer!.id, alphaCompanyId);
+      expect(link).toBeDefined();
+      expect(link!.status).toBe('active');
+    });
+
+    // --- C14: Employee Alpha cria cliente novo → 201 ---
+    it('C14: employee Alpha cria cliente novo → 201', async () => {
+      const token = await loginAs(ctx.app, 'employee.e2e@loopclub.dev');
+      const response = await postCustomer(ctx.app, token, {
+        name: 'José C14',
+        phone: '(81) 99999-1401',
+      });
+
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty('isNewCustomer', true);
+      assertNoSensitiveFields(response.body);
+    });
+
+    // --- C15: mesmo Customer global é vinculado à Beta (reusa telefone) ---
+    it('C15: mesmo Customer global é vinculado à Beta → 201', async () => {
+      // Primeiro cria o customer na Alpha
+      const tokenAlpha = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+      const createRes = await postCustomer(ctx.app, tokenAlpha, {
+        name: 'Carlos C15',
+        phone: '(81) 99999-1501',
+      });
+      expect(createRes.status).toBe(201);
+      const globalCustomerId = createRes.body.customerId;
+      expect(createRes.body.isNewCustomer).toBe(true);
+
+      // Reusa o mesmo telefone em outra empresa
+      const tokenBeta = await loginAs(ctx.app, 'owner.beta.e2e@loopclub.dev');
+      const response = await postCustomer(ctx.app, tokenBeta, {
+        name: 'Carlos C15',
+        phone: '(81) 99999-1501',
+      });
+
+      expect(response.status).toBe(201);
+      expect(response.body.customerId).toBe(globalCustomerId);
+      expect(response.body.isNewCustomer).toBe(false);
+      assertNoSensitiveFields(response.body);
+
+      // Verificar vínculo na Beta
+      const link = await findCompanyCustomer(ctx.prisma, globalCustomerId, betaCompanyId);
+      expect(link).toBeDefined();
+      expect(link!.status).toBe('active');
+
+      // Contar vínculos: Alpha + Beta = 2
+      const count = await countCompanyCustomers(ctx.prisma, alphaCompanyId);
+      expect(count).toBeGreaterThanOrEqual(1);
+    });
+
+    // --- C16: vínculo duplicado na mesma empresa → 409 ---
+    it('C16: vínculo duplicado na mesma empresa → 409', async () => {
+      const token = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+
+      // Primeira criação
+      const first = await postCustomer(ctx.app, token, {
+        name: 'Duplicado C16',
+        phone: '(81) 99999-1601',
+      });
+      expect(first.status).toBe(201);
+
+      // Segunda tentativa com mesmo telefone na mesma empresa
+      const second = await postCustomer(ctx.app, token, {
+        name: 'Duplicado C16',
+        phone: '(81) 99999-1601',
+      });
+
+      expect(second.status).toBe(409);
+    });
+
+    // --- C17: sem token → 401 ---
+    it('C17: sem token → 401', async () => {
+      const response = await postCustomerUnauthenticated(ctx.app, {
+        name: 'Sem Token',
+        phone: '(81) 99999-1701',
+      });
+      expect(response.status).toBe(401);
+    });
+
+    // --- C18: token inválido → 401 ---
+    it('C18: token inválido → 401', async () => {
+      const response = await postCustomer(ctx.app, 'token.invalido.aqui', {
+        name: 'Token Inválido',
+        phone: '(81) 99999-1801',
+      });
+      expect(response.status).toBe(401);
+    });
+
+    // --- C19: client → 403 ---
+    it('C19: client → 403', async () => {
+      const token = await loginAs(ctx.app, 'client.e2e@loopclub.dev');
+      const response = await postCustomer(ctx.app, token, {
+        name: 'Client User',
+        phone: '(81) 99999-1901',
+      });
+      expect(response.status).toBe(403);
+    });
+
+    // --- C20: admin → 403 ---
+    it('C20: admin → 403', async () => {
+      const token = await loginAs(ctx.app, 'admin.e2e@loopclub.dev');
+      const response = await postCustomer(ctx.app, token, {
+        name: 'Admin User',
+        phone: '(81) 99999-2001',
+      });
+      expect(response.status).toBe(403);
+    });
+
+    // --- C21: empresa inativa → 403 ---
+    it('C21: empresa inativa → 403', async () => {
+      const token = await loginAs(ctx.app, 'blocked.co.e2e@loopclub.dev');
+      const response = await postCustomer(ctx.app, token, {
+        name: 'Empresa Inativa',
+        phone: '(81) 99999-2101',
+      });
+      expect(response.status).toBe(403);
+    });
+
+    // --- C22: vínculo empresarial inativo → 403 ---
+    it('C22: vínculo empresarial inativo → 403', async () => {
+      const token = await loginAs(ctx.app, 'inactive.link.e2e@loopclub.dev');
+      const response = await postCustomer(ctx.app, token, {
+        name: 'Vínculo Inativo',
+        phone: '(81) 99999-2201',
+      });
+      expect(response.status).toBe(403);
+    });
+
+    // --- C23: body com companyId extra → 400 ---
+    it('C23: body com companyId extra → 400', async () => {
+      const token = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+      const response = await postCustomer(ctx.app, token, {
+        name: 'CompanyId Extra',
+        phone: '(81) 99999-2301',
+        companyId: 'some-extra-id',
+      });
+      expect(response.status).toBe(400);
+    });
+
+    // --- C24: telefone inválido → 400 ---
+    it('C24: telefone inválido → 400', async () => {
+      const token = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+      const response = await postCustomer(ctx.app, token, {
+        name: 'Telefone Ruim',
+        phone: '123',
+      });
+      expect(response.status).toBe(400);
+    });
+
+    // --- C25: CPF inválido → 400 ---
+    it('C25: CPF inválido → 400', async () => {
+      const token = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+      const response = await postCustomer(ctx.app, token, {
+        name: 'CPF Ruim',
+        phone: '(81) 99999-2501',
+        cpf: '11111111111',
+      });
+      expect(response.status).toBe(400);
+    });
+
+    // --- C26: internalCode duplicado → 409 ---
+    it('C26: internalCode duplicado → 409', async () => {
+      const token = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+
+      // Primeiro uso do código
+      const first = await postCustomer(ctx.app, token, {
+        name: 'Primeiro C26',
+        phone: '(81) 99999-2601',
+        internalCode: 'C26-DUP',
+      });
+      expect(first.status).toBe(201);
+
+      // Segundo uso com mesmo código (outro telefone)
+      const second = await postCustomer(ctx.app, token, {
+        name: 'Segundo C26',
+        phone: '(81) 99999-2602',
+        internalCode: 'C26-DUP',
+      });
+      expect(second.status).toBe(409);
+    });
+
+    // --- C27: resposta não contém cpfLookupHash, cpfLastDigits ou userId ---
+    it('C27: resposta não contém campos sensíveis', async () => {
+      const token = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+      const response = await postCustomer(ctx.app, token, {
+        name: 'Sem Sensíveis C27',
+        phone: '(81) 99999-2701',
+        cpf: '529.982.247-25',
+      });
+
+      expect(response.status).toBe(201);
+      expect(response.body).not.toHaveProperty('cpfLookupHash');
+      expect(response.body).not.toHaveProperty('cpfLastDigits');
+      expect(response.body).not.toHaveProperty('userId');
+    });
+
+    // --- C28: AuditLog criado na mesma transação ---
+    it('C28: AuditLog criado na mesma transação', async () => {
+      const token = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+      const response = await postCustomer(ctx.app, token, {
+        name: 'Auditável C28',
+        phone: '(81) 99999-2801',
+      });
+
+      expect(response.status).toBe(201);
+      const companyCustomerId = response.body.companyCustomerId;
+
+      const auditLog = await findAuditLog(ctx.prisma, 'CompanyCustomer', companyCustomerId);
+      expect(auditLog).toBeDefined();
+      expect(auditLog!.action).toBe('customer.link.create');
+      expect(auditLog!.entity).toBe('CompanyCustomer');
+      expect(auditLog!.entityId).toBe(companyCustomerId);
     });
   });
 });

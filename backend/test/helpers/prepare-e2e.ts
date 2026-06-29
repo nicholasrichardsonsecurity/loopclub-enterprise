@@ -1,22 +1,29 @@
 import { execSync } from 'child_process';
+import { config } from 'dotenv';
 import { validateTestEnvironment } from './test-environment';
 
 /**
  * Prepara o banco e2e aplicando as migrations existentes.
  *
  * Fluxo de segurança:
- * 1. Exige NODE_ENV === 'test'
- * 2. Exige DATABASE_URL_TEST
- * 3. Valida banco via validateTestEnvironment() (sufixo, host, não conflito, etc.)
- * 4. validateTestEnvironment() redireciona DATABASE_URL para DATABASE_URL_TEST
+ * 1. Carrega variáveis de ambiente do .env (sem sobrescrever)
+ * 2. Exige NODE_ENV === 'test'
+ * 3. Exige DATABASE_URL_TEST
+ * 4. Valida banco via validateTestEnvironment() (sufixo, host, não conflito, etc.)
+ * 5. validateTestEnvironment() redireciona DATABASE_URL para DATABASE_URL_TEST
  *    como efeito colateral — mas como este script roda fora do Jest,
  *    precisamos do valor de DATABASE_URL_TEST para o child_process
- * 5. Executa `prisma migrate deploy` com DATABASE_URL = DATABASE_URL_TEST
+ * 6. Executa `prisma migrate deploy` com DATABASE_URL = DATABASE_URL_TEST
  *
  * Nunca imprime URL, usuário ou senha.
  * Nunca usa fallback para DATABASE_URL de desenvolvimento.
  */
 function main(): void {
+  // 0. Carrega .env antes de qualquer validação (sem override)
+  //    Necessário porque este script roda fora do Jest/NestJS e precisa
+  //    de DATABASE_URL_TEST e outras variáveis definidas no .env
+  config();
+
   // 1. Exige NODE_ENV === 'test' (antes de qualquer outra operação)
   if (process.env.NODE_ENV !== 'test') {
     console.error(

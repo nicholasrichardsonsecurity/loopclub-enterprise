@@ -1,7 +1,5 @@
 import { CustomersService, CreateCustomerResult } from './customers.service';
-import { ConflictException, InternalServerErrorException, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PhoneError } from './helpers/phone.helper';
-import { CpfError } from './helpers/cpf.helper';
+import { BadRequestException, ConflictException, InternalServerErrorException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 const HMAC_SECRET = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -179,7 +177,7 @@ describe('CustomersService', () => {
           ...BASE_DTO,
           birthDate: '15/05/1990',
         }),
-      ).rejects.toThrow(PhoneError);
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('deve rejeitar data inexistente', async () => {
@@ -188,7 +186,7 @@ describe('CustomersService', () => {
           ...BASE_DTO,
           birthDate: '1990-02-30',
         }),
-      ).rejects.toThrow(PhoneError);
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('deve rejeitar data futura', async () => {
@@ -197,7 +195,7 @@ describe('CustomersService', () => {
           ...BASE_DTO,
           birthDate: '2099-01-01',
         }),
-      ).rejects.toThrow(PhoneError);
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('deve rejeitar limite histórico inválido', async () => {
@@ -206,7 +204,7 @@ describe('CustomersService', () => {
           ...BASE_DTO,
           birthDate: '1800-01-01',
         }),
-      ).rejects.toThrow(PhoneError);
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -402,20 +400,20 @@ describe('CustomersService', () => {
   });
 
   // ===== Telefone inválido =====
-  it('deve lançar PhoneError para telefone inválido', async () => {
+  it('deve lançar BadRequestException para telefone inválido', async () => {
     await expect(
       service.createForCompany(COMPANY_ID, ACTOR_USER_ID, { ...BASE_DTO, phone: '123' }),
-    ).rejects.toThrow(PhoneError);
+    ).rejects.toThrow(BadRequestException);
   });
 
   // ===== CPF inválido =====
-  it('deve lançar CpfError para CPF inválido', async () => {
+  it('deve lançar BadRequestException para CPF inválido', async () => {
     await expect(
       service.createForCompany(COMPANY_ID, ACTOR_USER_ID, {
         ...BASE_DTO,
         cpf: '11111111111',
       }),
-    ).rejects.toThrow(CpfError);
+    ).rejects.toThrow(BadRequestException);
   });
 
   // ===== CPF válido gera HMAC =====

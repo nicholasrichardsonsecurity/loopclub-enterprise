@@ -12,6 +12,9 @@ import { PrismaClient } from '@prisma/client';
  */
 const TABLES_IN_DELETE_ORDER: string[] = [
   '"AuditLog"',
+  '"CustomerConsentEvent"',
+  '"CompanyCustomer"',
+  '"Customer"',
   '"QrToken"',
   '"Transaction"',
   '"LoyaltyProgress"',
