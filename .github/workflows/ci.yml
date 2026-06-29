@@ -1,86 +1,86 @@
 name: CI Backend
 
 on:
-push:
-branches:
-- main
-pull_request:
-branches:
-- main
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 permissions:
-contents: read
+  contents: read
 
 defaults:
-run:
-working-directory: backend
+  run:
+    working-directory: backend
 
 jobs:
-validate-backend:
-name: Testes e build do backend
-runs-on: ubuntu-latest
-timeout-minutes: 15
+  validate-backend:
+    name: Testes e build do backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
-services:
-  postgres:
-    image: postgres:16-alpine
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: loopclub_e2e
+          POSTGRES_USER: loopclub_ci
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U loopclub_ci -d loopclub_e2e"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     env:
-      POSTGRES_DB: loopclub_e2e
-      POSTGRES_USER: loopclub_ci
-      POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
-    ports:
-      - 5432:5432
-    options: >-
-      --health-cmd="pg_isready -U loopclub_ci -d loopclub_e2e"
-      --health-interval=10s
-      --health-timeout=5s
-      --health-retries=5
+      DATABASE_URL: postgresql://ci_placeholder:ci_placeholder@localhost:5432/loopclub_ci_placeholder?schema=public
+      DATABASE_URL_TEST: postgresql://loopclub_ci:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/loopclub_e2e?schema=public
+      NODE_ENV: test
+      E2E_TEST_PASSWORD: ${{ secrets.CI_E2E_TEST_PASSWORD }}
+      JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
+      CUSTOMER_PII_HMAC_SECRET: ${{ secrets.CI_CUSTOMER_PII_HMAC_SECRET }}
 
-env:
-  DATABASE_URL: postgresql://ci_placeholder:ci_placeholder@localhost:5432/loopclub_ci_placeholder?schema=public
-  DATABASE_URL_TEST: postgresql://loopclub_ci:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/loopclub_e2e?schema=public
-  NODE_ENV: test
-  E2E_TEST_PASSWORD: ${{ secrets.CI_E2E_TEST_PASSWORD }}
-  JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
-  CUSTOMER_PII_HMAC_SECRET: ${{ secrets.CI_CUSTOMER_PII_HMAC_SECRET }}
+    steps:
+      - name: Baixar o repositorio
+        uses: actions/checkout@v5
 
-steps:
-  - name: Baixar o repositório
-    uses: actions/checkout@v5
+      - name: Configurar Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
 
-  - name: Configurar Node.js
-    uses: actions/setup-node@v5
-    with:
-      node-version: 24
-      cache: npm
-      cache-dependency-path: backend/package-lock.json
+      - name: Instalar dependencias
+        run: npm ci
 
-  - name: Instalar dependências
-    run: npm ci
+      - name: Gerar Prisma Client
+        run: npx prisma generate
 
-  - name: Gerar Prisma Client
-    run: npx prisma generate
+      - name: Executar testes unitarios
+        run: npm test -- --runInBand
 
-  - name: Executar testes unitários
-    run: npm test -- --runInBand
+      - name: Compilar o backend
+        run: npm run build
 
-  - name: Compilar o backend
-    run: npm run build
+      - name: Validar segredo HMAC de clientes
+        shell: bash
+        run: |
+          if [ -z "$CUSTOMER_PII_HMAC_SECRET" ]; then
+            echo "CUSTOMER_PII_HMAC_SECRET ausente"
+            exit 1
+          fi
 
-  - name: Validar segredo HMAC de clientes
-    shell: bash
-    run: |
-      if [ -z "$CUSTOMER_PII_HMAC_SECRET" ]; then
-        echo "CUSTOMER_PII_HMAC_SECRET ausente"
-        exit 1
-      fi
+          if [ "${#CUSTOMER_PII_HMAC_SECRET}" -lt 32 ]; then
+            echo "CUSTOMER_PII_HMAC_SECRET possui menos de 32 caracteres"
+            exit 1
+          fi
 
-      if [ "${#CUSTOMER_PII_HMAC_SECRET}" -lt 32 ]; then
-        echo "CUSTOMER_PII_HMAC_SECRET possui menos de 32 caracteres"
-        exit 1
-      fi
+          echo "CUSTOMER_PII_HMAC_SECRET disponivel e valido"
 
-      echo "CUSTOMER_PII_HMAC_SECRET disponível e com tamanho válido"
-
-  - name: Executar testes e2e
-    run: npm run test:e2e:ci
+      - name: Executar testes e2e
+        run: npm run test:e2e:ci
