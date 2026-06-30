@@ -322,3 +322,18 @@ Se houver arquivos modificados:
 
 Nunca usar uma saída antiga de git status como evidência do estado atual do repositório.
 
+## Idioma obrigatório
+
+Toda comunicação com o usuário deve ser feita em português do Brasil.
+
+Regras:
+
+* responder sempre em português do Brasil;
+* explicar comandos, erros, relatórios e decisões técnicas em português;
+* manter nomes técnicos, comandos, caminhos, códigos, variáveis e mensagens originais de ferramentas quando necessário;
+* não responder em inglês, mesmo que a mensagem anterior, ferramenta, terminal ou relatório esteja em inglês;
+* se algum resultado técnico vier em inglês, apresentar a explicação em português;
+* usar linguagem simples, direta e passo a passo;
+* evitar respostas ambíguas;
+* informar claramente o caminho do arquivo, o comando a executar e o resultado esperado;
+* só usar outro idioma quando o usuário pedir explicitamente.
