@@ -1,11 +1,13 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiForbiddenResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiForbiddenResponse, ApiQuery, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RequireCompany } from '../tenant/decorators/require-company.decorator';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
+import { ListCustomersDto } from './dto/list-customers.dto';
+import { SearchCustomersDto } from './dto/search-customers.dto';
 
 @ApiTags('Customers')
 @ApiBearerAuth()
@@ -24,5 +26,36 @@ export class CustomersController {
     const actorUserId = req.user.userId;
 
     return this.customersService.createForCompany(companyId, actorUserId, dto);
+  }
+
+  @Get()
+  @Roles('company_owner', 'employee')
+  @RequireCompany()
+  async list(@Req() req: any, @Query() dto: ListCustomersDto) {
+    const companyId = req.user.companyId;
+    const actorUserId = req.user.userId;
+
+    return this.customersService.list(companyId, actorUserId, dto);
+  }
+
+  @Get('search')
+  @Roles('company_owner', 'employee')
+  @RequireCompany()
+  async search(@Req() req: any, @Query() dto: SearchCustomersDto) {
+    const companyId = req.user.companyId;
+    const actorUserId = req.user.userId;
+
+    return this.customersService.search(companyId, actorUserId, dto);
+  }
+
+  @Get(':companyCustomerId')
+  @Roles('company_owner', 'employee')
+  @RequireCompany()
+  async findById(@Req() req: any, @Param('companyCustomerId') companyCustomerId: string) {
+    const companyId = req.user.companyId;
+    const actorUserId = req.user.userId;
+    const actorRole = req.user.role;
+
+    return this.customersService.findById(companyId, actorUserId, companyCustomerId, actorRole);
   }
 }

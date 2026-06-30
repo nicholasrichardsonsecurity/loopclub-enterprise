@@ -53,6 +53,134 @@
 
 ### Checklist LGPD e segurança (obrigatório em toda tarefa)
 
+### Protocolo obrigatório antes de cada commit
+
+#### Princípios
+
+* DOCUMENTADO ≠ IMPLEMENTADO
+* IMPLEMENTADO ≠ VALIDADO
+* VALIDADO exige teste executado e resultado comprovado
+* Nunca declarar uma funcionalidade concluída somente porque o código foi escrito
+* Nunca fazer commit ou push sem autorização explícita do usuário
+* Nunca executar reset, DROP, DELETE destrutivo ou migration em produção sem autorização explícita
+* Nunca adicionar .env, senha, token, secret, URL privada ou dado pessoal ao Git
+
+#### Antes de modificar arquivos
+
+* executar `git status --short`
+* identificar arquivos já modificados antes da tarefa
+* distinguir alterações anteriores das alterações da tarefa atual
+* não sobrescrever código válido sem inspeção
+* informar os caminhos exatos dos arquivos envolvidos
+
+#### Antes do commit
+
+Executar:
+
+```
+git status --short
+git diff --check
+git diff --name-status
+git diff --stat
+```
+
+Depois do `git add`:
+
+```
+git diff --cached --check
+git diff --cached --name-status
+git diff --cached --stat
+```
+
+Verificar se não entraram:
+
+* .env
+* arquivos temporários
+* logs
+* dumps
+* caches
+* saída de testes
+* credenciais
+* tokens
+* secrets
+* dados pessoais
+* arquivos gerados indevidamente
+
+#### Banco e Prisma
+
+Quando houver schema ou migration:
+
+* confirmar host, porta, banco e ambiente sem mostrar credenciais
+* executar `prisma format`
+* executar `prisma validate`
+* executar `prisma generate`
+* inspecionar migration.sql integralmente
+* procurar DROP, DELETE, ALTER destrutivo e perda de dados
+* nunca aceitar reset automaticamente
+* nunca alterar migrations antigas
+* confirmar preservação dos dados
+
+#### Segurança multiempresa
+
+Verificar:
+
+* `companyId` obtido do contexto autenticado
+* nunca confiar em `companyId` enviado pelo frontend
+* consultas filtradas por tenant
+* nenhum acesso cruzado entre empresas
+* respostas sem hashes, senhas, tokens ou dados sensíveis
+* DTOs com whitelist e forbidNonWhitelisted
+* logs e AuditLog sem PII desnecessária
+
+#### Testes obrigatórios
+
+Conforme a mudança, executar:
+
+```
+npm test -- --runInBand
+npm run build
+npm run test:e2e
+```
+
+Confirmar:
+
+* testes antigos preservados
+* novos testes adicionados
+* nenhum risco de dados no banco de desenvolvimento
+* somente loopclub_e2e limpo e semeado
+* total de testes informado corretamente
+
+#### Após o push
+
+Verificar no GitHub Actions:
+
+* PostgreSQL service saudável
+* npm ci aprovado
+* prisma generate aprovado
+* testes unitários aprovados
+* build aprovado
+* migrations e2e aplicadas
+* testes e2e aprovados
+* job completo verde
+
+#### Relatório obrigatório antes do commit
+
+Apresentar:
+
+1. arquivos alterados;
+2. arquivos que entrarão no commit;
+3. arquivos que não devem entrar;
+4. possíveis riscos;
+5. resultado dos testes;
+6. estado do banco;
+7. estado das migrations;
+8. `git diff --check`;
+9. `git diff --cached --name-status`;
+10. mensagem de commit sugerida;
+11. confirmação de que nenhum secret será enviado;
+12. confirmação de que nenhum commit ou push foi realizado.
+
+
 - [ ] **Coleta mínima de dados:** o novo campo/feature é realmente necessário?
 - [ ] **Finalidade documentada:** a finalidade do tratamento está registrada em DATA-MAP.md?
 - [ ] **Base legal avaliada:** qual base legal da LGPD justifica este tratamento?

@@ -110,3 +110,74 @@ export async function countCompanyCustomers(
 ): Promise<number> {
   return prisma.companyCustomer.count({ where: { companyId } });
 }
+
+// -----------------------------------------------------------------------
+// Helpers para GET /customers (listagem, busca, detalhe)
+// -----------------------------------------------------------------------
+
+/**
+ * Realiza GET /customers autenticado.
+ */
+export function listCustomers(
+  app: INestApplication,
+  token: string,
+  query?: Record<string, string | number | undefined>,
+): request.Test {
+  let req = request(app.getHttpServer())
+    .get('/customers')
+    .set('Authorization', `Bearer ${token}`);
+  if (query) {
+    req = req.query(query);
+  }
+  return req;
+}
+
+/**
+ * Realiza GET /customers/search autenticado.
+ */
+export function searchCustomers(
+  app: INestApplication,
+  token: string,
+  query: Record<string, string | number>,
+): request.Test {
+  return request(app.getHttpServer())
+    .get('/customers/search')
+    .set('Authorization', `Bearer ${token}`)
+    .query(query);
+}
+
+/**
+ * Realiza GET /customers/search sem token.
+ */
+export function searchCustomersUnauthenticated(
+  app: INestApplication,
+  query: Record<string, string | number>,
+): request.Test {
+  return request(app.getHttpServer())
+    .get('/customers/search')
+    .query(query);
+}
+
+/**
+ * Realiza GET /customers/:id autenticado.
+ */
+export function getCustomerDetail(
+  app: INestApplication,
+  token: string,
+  companyCustomerId: string,
+): request.Test {
+  return request(app.getHttpServer())
+    .get(`/customers/${companyCustomerId}`)
+    .set('Authorization', `Bearer ${token}`);
+}
+
+/**
+ * Realiza GET /customers/:id sem token.
+ */
+export function getCustomerDetailUnauthenticated(
+  app: INestApplication,
+  companyCustomerId: string,
+): request.Test {
+  return request(app.getHttpServer())
+    .get(`/customers/${companyCustomerId}`);
+}

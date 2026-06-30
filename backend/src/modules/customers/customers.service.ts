@@ -10,9 +10,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
+import { ListCustomersDto } from './dto/list-customers.dto';
+import { SearchCustomersDto } from './dto/search-customers.dto';
 import { normalizeBrazilianPhoneToE164, PhoneError } from './helpers/phone.helper';
 import { isValidCpf, generateCpfLookupHash, getCpfLastDigits, CpfError } from './helpers/cpf.helper';
 import { CompanyCustomerSource, Prisma } from '@prisma/client';
+import { toCustomerListItem, toCustomerDetailItem } from './dto/customer-response.dto';
+import type { PaginatedResult, CustomerListResult, CustomerDetailResult } from './dto/customer-response.dto';
 
 export class BirthDateError extends Error {
   constructor(message: string) {
@@ -234,6 +238,181 @@ export class CustomersService {
         isNewCustomer,
       };
     });
+  }
+
+  /**
+   * Lista clientes da empresa com paginação e ordenação previsível.
+   */
+  async list(
+    companyId: string,
+    actorUserId: string,
+    dto: ListCustomersDto,
+  ): Promise<PaginatedResult<CustomerListResult>> {
+    await this.validateCompanyAndActor(companyId, actorUserId);
+
+    const page = dto.page ?? 1;
+    const limit = dto.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.companyCustomer.findMany({
+        where: { companyId },
+        select: {
+          id: true,
+          internalCode: true,
+          status: true,
+          source: true,
+          joinedAt: true,
+          lastAttendedAt: true,
+          notes: true,
+          customer: {
+            select: {
+              name: true,
+              phoneE164: true,
+              emailNormalized: true,
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: [{ joinedAt: 'desc' }, { id: 'asc' }],
+      }),
+      this.prisma.companyCustomer.count({ where: { companyId } }),
+    ]);
+
+    return {
+      items: items.map(toCustomerListItem),
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  /**
+   * Busca clientes da empresa por nome, telefone ou código interno.
+   */
+  async search(
+    companyId: string,
+    actorUserId: string,
+    dto: SearchCustomersDto,
+  ): Promise<PaginatedResult<CustomerListResult>> {
+    await this.validateCompanyAndActor(companyId, actorUserId);
+
+    const { name, phone, internalCode } = dto;
+
+    if (!name && !phone && !internalCode) {
+      throw new BadRequestException('Forneça ao menos um termo de busca');
+    }
+
+    if (name && name.length < 3) {
+      throw new BadRequestException('Nome deve ter no mínimo 3 caracteres');
+    }
+
+    const page = dto.page ?? 1;
+    const limit = dto.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    // Filtros — sempre escopados por companyId
+    const AND: Prisma.Enumerable<Prisma.CompanyCustomerWhereInput> = [{ companyId }];
+
+    if (name) {
+      AND.push({ customer: { name: { contains: name, mode: 'insensitive' } } });
+    }
+
+    if (phone) {
+      let phoneE164: string;
+      try {
+        phoneE164 = normalizeBrazilianPhoneToE164(phone);
+      } catch {
+        throw new BadRequestException('Telefone inválido');
+      }
+      AND.push({ customer: { phoneE164 } });
+    }
+
+    if (internalCode) {
+      AND.push({ internalCode: { contains: internalCode, mode: 'insensitive' } });
+    }
+
+    const where: Prisma.CompanyCustomerWhereInput = { AND };
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.companyCustomer.findMany({
+        where,
+        select: {
+          id: true,
+          internalCode: true,
+          status: true,
+          source: true,
+          joinedAt: true,
+          lastAttendedAt: true,
+          notes: true,
+          customer: {
+            select: {
+              name: true,
+              phoneE164: true,
+              emailNormalized: true,
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: [{ joinedAt: 'desc' }, { id: 'asc' }],
+      }),
+      this.prisma.companyCustomer.count({ where }),
+    ]);
+
+    return {
+      items: items.map(toCustomerListItem),
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  /**
+   * Retorna detalhe de um CompanyCustomer pelo ID, com isolamento de tenant.
+   *
+   * company_owner recebe birthDate; employee não.
+   */
+  async findById(
+    companyId: string,
+    actorUserId: string,
+    companyCustomerId: string,
+    actorRole: string,
+  ): Promise<CustomerDetailResult> {
+    await this.validateCompanyAndActor(companyId, actorUserId);
+
+    const link = await this.prisma.companyCustomer.findFirst({
+      where: {
+        id: companyCustomerId,
+        companyId,
+      },
+      select: {
+        id: true,
+        internalCode: true,
+        status: true,
+        source: true,
+        joinedAt: true,
+        lastAttendedAt: true,
+        notes: true,
+        customer: {
+          select: {
+            name: true,
+            phoneE164: true,
+            emailNormalized: true,
+            birthDate: actorRole === 'company_owner',
+          },
+        },
+      },
+    });
+
+    if (!link) {
+      throw new NotFoundException('Cliente não encontrado');
+    }
+
+    return toCustomerDetailItem(link);
   }
 
   private async validateCompanyAndActor(companyId: string, actorUserId: string): Promise<void> {

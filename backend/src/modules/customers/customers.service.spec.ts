@@ -11,6 +11,9 @@ const mockCustomerFindUnique = jest.fn();
 const mockCustomerCreate = jest.fn();
 const mockCompanyCustomerFindUnique = jest.fn();
 const mockCompanyCustomerCreate = jest.fn();
+const mockCompanyCustomerFindMany = jest.fn();
+const mockCompanyCustomerCount = jest.fn();
+const mockCompanyCustomerFindFirst = jest.fn();
 const mockAuditLogCreate = jest.fn();
 const mock$transaction = jest.fn();
 
@@ -29,6 +32,9 @@ jest.mock('../../prisma.service', () => ({
     companyCustomer: {
       findUnique: mockCompanyCustomerFindUnique,
       create: mockCompanyCustomerCreate,
+      findMany: mockCompanyCustomerFindMany,
+      count: mockCompanyCustomerCount,
+      findFirst: mockCompanyCustomerFindFirst,
     },
     auditLog: {
       create: mockAuditLogCreate,
@@ -588,5 +594,368 @@ describe('CustomersService', () => {
     });
 
     expect(result.source).toBe('qrcode');
+  });
+
+  // =====================================================================
+  // Listagem — GET /customers
+  // =====================================================================
+  describe('list — GET /customers', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockConfigGet.mockReturnValue(HMAC_SECRET);
+      mockCompanyFindUnique.mockResolvedValue({ id: COMPANY_ID, status: 'active' });
+      mockCompanyUserFindUnique.mockResolvedValue({ status: 'active', role: 'owner' });
+
+      const { PrismaService } = require('../../prisma.service');
+      const { ConfigService } = require('@nestjs/config');
+      service = new CustomersService(new PrismaService(), new ConfigService());
+    });
+
+    it('deve listar clientes paginados', async () => {
+      const items = [
+        {
+          id: 'cc-1',
+          internalCode: null,
+          status: 'active',
+          source: 'manual',
+          joinedAt: new Date(),
+          lastAttendedAt: null,
+          notes: null,
+          customer: { name: 'João', phoneE164: '+5581999991234', emailNormalized: null },
+        },
+      ];
+      mock$transaction.mockImplementation((queries: any[]) => {
+        return Promise.resolve([items, 1]);
+      });
+
+      const result = await service.list(COMPANY_ID, ACTOR_USER_ID, { page: 1, limit: 20 });
+
+      expect(result.items).toHaveLength(1);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(20);
+      expect(result.total).toBe(1);
+      expect(result.totalPages).toBe(1);
+      expect(result.items[0].id).toBe('cc-1');
+    });
+
+    it('deve usar page padrão 1 quando omitido', async () => {
+      const items: any[] = [];
+      mock$transaction.mockImplementation((queries: any[]) => {
+        return Promise.resolve([items, 4]);
+      });
+
+      const result = await service.list(COMPANY_ID, ACTOR_USER_ID, {});
+
+      expect(result.page).toBe(1);
+      expect(result.total).toBe(4);
+    });
+
+    it('deve usar limit padrão 20 quando omitido', async () => {
+      const items = Array.from({ length: 20 }, (_, i) => ({
+        id: `cc-${i}`,
+        internalCode: null,
+        status: 'active',
+        source: 'manual',
+        joinedAt: new Date(),
+        lastAttendedAt: null,
+        notes: null,
+        customer: { name: `Cliente ${i}`, phoneE164: `+558199999${String(i).padStart(4, '0')}`, emailNormalized: null },
+      }));
+      mock$transaction.mockImplementation((queries: any[]) => {
+        return Promise.resolve([items, 100]);
+      });
+
+      const result = await service.list(COMPANY_ID, ACTOR_USER_ID, {});
+
+      expect(result.limit).toBe(20);
+      expect(result.items).toHaveLength(20);
+    });
+
+    it('deve respeitar limit máximo 100', async () => {
+      const items = Array.from({ length: 100 }, (_, i) => ({
+        id: `cc-${i}`,
+        internalCode: null,
+        status: 'active',
+        source: 'manual',
+        joinedAt: new Date(),
+        lastAttendedAt: null,
+        notes: null,
+        customer: { name: `Cliente ${i}`, phoneE164: `+558199999${String(i).padStart(4, '0')}`, emailNormalized: null },
+      }));
+      mock$transaction.mockImplementation((queries: any[]) => {
+        return Promise.resolve([items, 200]);
+      });
+
+      const result = await service.list(COMPANY_ID, ACTOR_USER_ID, { limit: 100 });
+
+      expect(result.items).toHaveLength(100);
+      expect(result.totalPages).toBe(2);
+    });
+
+    it('deve filtrar por companyId', async () => {
+      mockCompanyCustomerFindMany.mockResolvedValue([]);
+      mockCompanyCustomerCount.mockResolvedValue(0);
+      mock$transaction.mockImplementation(() => Promise.resolve([[], 0]));
+
+      await service.list(COMPANY_ID, ACTOR_USER_ID, {});
+      expect(mockCompanyCustomerFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: { companyId: COMPANY_ID } }));
+    });
+
+    it('deve retornar total correto', async () => {
+      mock$transaction.mockImplementation((queries: any[]) => {
+        return Promise.resolve([[], 42]);
+      });
+
+      const result = await service.list(COMPANY_ID, ACTOR_USER_ID, {});
+
+      expect(result.total).toBe(42);
+      expect(result.totalPages).toBe(3);
+    });
+
+    it('não deve retornar cpfLookupHash nem cpfLastDigits', async () => {
+      const items = [
+        {
+          id: 'cc-1',
+          internalCode: null,
+          status: 'active',
+          source: 'manual',
+          joinedAt: new Date(),
+          lastAttendedAt: null,
+          notes: null,
+          customer: { name: 'João', phoneE164: '+5581999991234', emailNormalized: null },
+        },
+      ];
+      mock$transaction.mockImplementation((queries: any[]) => {
+        return Promise.resolve([items, 1]);
+      });
+
+      const result = await service.list(COMPANY_ID, ACTOR_USER_ID, {});
+
+      expect(result.items[0]).not.toHaveProperty('cpfLookupHash');
+      expect(result.items[0]).not.toHaveProperty('cpfLastDigits');
+    });
+  });
+
+  // =====================================================================
+  // Busca — GET /customers/search
+  // =====================================================================
+  describe('search — GET /customers/search', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockConfigGet.mockReturnValue(HMAC_SECRET);
+      mockCompanyFindUnique.mockResolvedValue({ id: COMPANY_ID, status: 'active' });
+      mockCompanyUserFindUnique.mockResolvedValue({ status: 'active', role: 'owner' });
+
+      const { PrismaService } = require('../../prisma.service');
+      const { ConfigService } = require('@nestjs/config');
+      service = new CustomersService(new PrismaService(), new ConfigService());
+    });
+
+    it('deve buscar por nome', async () => {
+      mockCompanyCustomerFindMany.mockResolvedValue([]);
+      mockCompanyCustomerCount.mockResolvedValue(0);
+      mock$transaction.mockImplementation(() => Promise.resolve([[], 0]));
+
+      await service.search(COMPANY_ID, ACTOR_USER_ID, { name: 'João', page: 1, limit: 20 });
+      expect(mockCompanyCustomerFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ AND: expect.arrayContaining([
+        { companyId: COMPANY_ID },
+        { customer: { name: { contains: 'João', mode: 'insensitive' } } },
+      ]) }) }));
+    });
+
+    it('deve buscar por telefone', async () => {
+      mockCompanyCustomerFindMany.mockResolvedValue([]);
+      mockCompanyCustomerCount.mockResolvedValue(0);
+      mock$transaction.mockImplementation(() => Promise.resolve([[], 0]));
+
+      await service.search(COMPANY_ID, ACTOR_USER_ID, { phone: '(81) 99999-1234', page: 1, limit: 20 });
+      expect(mockCompanyCustomerFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ AND: expect.arrayContaining([
+        { companyId: COMPANY_ID },
+        { customer: { phoneE164: '+5581999991234' } },
+      ]) }) }));
+    });
+
+    it('deve buscar por internalCode', async () => {
+      mockCompanyCustomerFindMany.mockResolvedValue([]);
+      mockCompanyCustomerCount.mockResolvedValue(0);
+      mock$transaction.mockImplementation(() => Promise.resolve([[], 0]));
+
+      await service.search(COMPANY_ID, ACTOR_USER_ID, { internalCode: 'CLI-001', page: 1, limit: 20 });
+      expect(mockCompanyCustomerFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ AND: expect.arrayContaining([
+        { companyId: COMPANY_ID },
+        { internalCode: { contains: 'CLI-001', mode: 'insensitive' } },
+      ]) }) }));
+    });
+
+    it('deve rejeitar nome com menos de 3 caracteres', async () => {
+      await expect(
+        service.search(COMPANY_ID, ACTOR_USER_ID, { name: 'Jo', page: 1, limit: 20 }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('deve rejeitar telefone inválido', async () => {
+      await expect(
+        service.search(COMPANY_ID, ACTOR_USER_ID, { phone: '123', page: 1, limit: 20 }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('deve retornar paginação correta', async () => {
+      mock$transaction.mockImplementation((queries: any[]) => {
+        return Promise.resolve([[], 5]);
+      });
+
+      const result = await service.search(COMPANY_ID, ACTOR_USER_ID, { name: 'Maria', page: 2, limit: 2 });
+
+      expect(result.page).toBe(2);
+      expect(result.limit).toBe(2);
+      expect(result.total).toBe(5);
+      expect(result.totalPages).toBe(3);
+    });
+  });
+
+  // =====================================================================
+  // Detalhe — GET /customers/:companyCustomerId
+  // =====================================================================
+  describe('findById — GET /customers/:companyCustomerId', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockConfigGet.mockReturnValue(HMAC_SECRET);
+      mockCompanyFindUnique.mockResolvedValue({ id: COMPANY_ID, status: 'active' });
+      mockCompanyUserFindUnique.mockResolvedValue({ status: 'active', role: 'owner' });
+
+      const { PrismaService } = require('../../prisma.service');
+      const { ConfigService } = require('@nestjs/config');
+      service = new CustomersService(new PrismaService(), new ConfigService());
+    });
+
+    it('deve retornar detalhe do próprio tenant', async () => {
+      const linkId = 'cc-own-tenant';
+      mockCompanyCustomerFindFirst.mockResolvedValue({
+        id: linkId,
+        internalCode: 'CLI-001',
+        status: 'active',
+        source: 'manual',
+        joinedAt: new Date(),
+        lastAttendedAt: null,
+        notes: 'VIP',
+        customer: {
+          name: 'João Silva',
+          phoneE164: '+5581999991234',
+          emailNormalized: 'joao@email.com',
+          birthDate: new Date('1990-05-15'),
+        },
+      });
+
+      const result = await service.findById(COMPANY_ID, ACTOR_USER_ID, linkId, 'company_owner');
+
+      expect(result.id).toBe(linkId);
+      expect(result.name).toBe('João Silva');
+      expect(result.phone).toBe('(81) 99999-1234');
+      expect(result.email).toBe('joao@email.com');
+      expect(result.birthDate).toBe('1990-05-15');
+    });
+
+    it('deve buscar com companyId no filtro', async () => {
+      mockCompanyCustomerFindFirst.mockResolvedValue({
+        id: 'cc-1',
+        internalCode: null,
+        status: 'active',
+        source: 'manual',
+        joinedAt: new Date(),
+        lastAttendedAt: null,
+        notes: null,
+        customer: { name: 'Teste', phoneE164: '+5581999990000', emailNormalized: null, birthDate: null },
+      });
+
+      await service.findById(COMPANY_ID, ACTOR_USER_ID, 'cc-1', 'company_owner');
+
+      expect(mockCompanyCustomerFindFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'cc-1', companyId: COMPANY_ID },
+        }),
+      );
+    });
+
+    it('deve retornar 404 para CompanyCustomer de outro tenant', async () => {
+      mockCompanyCustomerFindFirst.mockResolvedValue(null);
+
+      await expect(
+        service.findById('other-company', ACTOR_USER_ID, 'cc-outro', 'company_owner'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('deve retornar 404 quando link não existe', async () => {
+      mockCompanyCustomerFindFirst.mockResolvedValue(null);
+
+      await expect(
+        service.findById(COMPANY_ID, ACTOR_USER_ID, 'cc-inexistente', 'company_owner'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('company_owner deve receber birthDate', async () => {
+      mockCompanyCustomerFindFirst.mockResolvedValue({
+        id: 'cc-1',
+        internalCode: null,
+        status: 'active',
+        source: 'manual',
+        joinedAt: new Date(),
+        lastAttendedAt: null,
+        notes: null,
+        customer: { name: 'Teste', phoneE164: '+5581999990000', emailNormalized: null, birthDate: new Date('1985-03-10') },
+      });
+
+      const result = await service.findById(COMPANY_ID, ACTOR_USER_ID, 'cc-1', 'company_owner');
+
+      expect(result.birthDate).toBe('1985-03-10');
+    });
+
+    it('employee não deve receber birthDate', async () => {
+      mockCompanyCustomerFindFirst.mockResolvedValue({
+        id: 'cc-1',
+        internalCode: null,
+        status: 'active',
+        source: 'manual',
+        joinedAt: new Date(),
+        lastAttendedAt: null,
+        notes: null,
+        customer: { name: 'Teste', phoneE164: '+5581999990000', emailNormalized: null, birthDate: undefined },
+      });
+
+      const result = await service.findById(COMPANY_ID, ACTOR_USER_ID, 'cc-1', 'employee');
+
+      expect(result.birthDate).toBeNull();
+    });
+
+    it('deve rejeitar empresa inexistente', async () => {
+      mockCompanyFindUnique.mockResolvedValue(null);
+
+      await expect(
+        service.findById(COMPANY_ID, ACTOR_USER_ID, 'cc-1', 'company_owner'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('deve rejeitar empresa inativa', async () => {
+      mockCompanyFindUnique.mockResolvedValue({ id: COMPANY_ID, status: 'blocked' });
+
+      await expect(
+        service.findById(COMPANY_ID, ACTOR_USER_ID, 'cc-1', 'company_owner'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('deve rejeitar vínculo do ator inexistente', async () => {
+      mockCompanyUserFindUnique.mockResolvedValue(null);
+
+      await expect(
+        service.findById(COMPANY_ID, ACTOR_USER_ID, 'cc-1', 'company_owner'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('deve rejeitar vínculo do ator inativo', async () => {
+      mockCompanyUserFindUnique.mockResolvedValue({ status: 'blocked', role: 'employee' });
+
+      await expect(
+        service.findById(COMPANY_ID, ACTOR_USER_ID, 'cc-1', 'company_owner'),
+      ).rejects.toThrow(ForbiddenException);
+    });
   });
 });

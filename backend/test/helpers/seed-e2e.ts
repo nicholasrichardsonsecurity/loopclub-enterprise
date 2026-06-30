@@ -148,5 +148,77 @@ export async function seedE2e(prisma: PrismaClient): Promise<void> {
     });
   }
 
+  // ===================================================================
+  // Customers para testes de listagem, busca e detalhe
+  // ===================================================================
+  const alphaId = companyMap.get(CNPJ_ALPHA)!;
+  const betaId = companyMap.get(CNPJ_BETA)!;
+
+  // Customer global → Alpha
+  const custAlpha1 = await prisma.customer.upsert({
+    where: { phoneE164: '+5581999999001' },
+    update: {},
+    create: {
+      name: 'Cliente Alpha 01',
+      phoneE164: '+5581999999001',
+      emailNormalized: 'cliente.alpha01@test.loopclub.dev',
+      birthDate: new Date('1990-03-15'),
+    },
+  });
+  await prisma.companyCustomer.upsert({
+    where: { customerId_companyId: { customerId: custAlpha1.id, companyId: alphaId } },
+    update: {},
+    create: {
+      customerId: custAlpha1.id,
+      companyId: alphaId,
+      internalCode: 'ALPHA-001',
+      source: 'manual',
+      notes: 'Cliente VIP',
+    },
+  });
+
+  // Customer global → Alpha (sem birthDate, para testar employee)
+  const custAlpha2 = await prisma.customer.upsert({
+    where: { phoneE164: '+5581999999002' },
+    update: {},
+    create: {
+      name: 'Cliente Alpha 02',
+      phoneE164: '+5581999999002',
+      emailNormalized: 'cliente.alpha02@test.loopclub.dev',
+    },
+  });
+  await prisma.companyCustomer.upsert({
+    where: { customerId_companyId: { customerId: custAlpha2.id, companyId: alphaId } },
+    update: {},
+    create: {
+      customerId: custAlpha2.id,
+      companyId: alphaId,
+      internalCode: 'ALPHA-002',
+      source: 'qrcode',
+    },
+  });
+
+  // Customer global → Beta (isolamento)
+  const custBeta1 = await prisma.customer.upsert({
+    where: { phoneE164: '+5581999999003' },
+    update: {},
+    create: {
+      name: 'Cliente Beta 01',
+      phoneE164: '+5581999999003',
+      emailNormalized: 'cliente.beta01@test.loopclub.dev',
+      birthDate: new Date('1985-07-20'),
+    },
+  });
+  await prisma.companyCustomer.upsert({
+    where: { customerId_companyId: { customerId: custBeta1.id, companyId: betaId } },
+    update: {},
+    create: {
+      customerId: custBeta1.id,
+      companyId: betaId,
+      internalCode: 'BETA-001',
+      source: 'manual',
+    },
+  });
+
   console.log('[seed-e2e] Dados de teste preparados com sucesso.');
 }

@@ -1,6 +1,6 @@
 import { CustomersController } from './customers.controller';
 import { CustomersService } from './customers.service';
-import { ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
+import { ForbiddenException, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('CustomersController', () => {
   let controller: CustomersController;
@@ -22,6 +22,9 @@ describe('CustomersController', () => {
   beforeEach(() => {
     service = {
       createForCompany: jest.fn(),
+      list: jest.fn(),
+      search: jest.fn(),
+      findById: jest.fn(),
     } as any;
     controller = new CustomersController(service);
   });
@@ -118,5 +121,82 @@ describe('CustomersController', () => {
     expect(result).toHaveProperty('phoneE164');
     expect(result).not.toHaveProperty('cpfLookupHash');
     expect(result).not.toHaveProperty('cpfLastDigits');
+  });
+
+  // =====================================================================
+  // GET /customers — list
+  // =====================================================================
+  describe('list — GET /customers', () => {
+    const paginatedResult = {
+      items: [
+        { id: 'cc-1', name: 'João', phone: '(81) 99999-1234', email: null, internalCode: null, status: 'active', source: 'manual', joinedAt: new Date(), lastAttendedAt: null, notes: null },
+      ],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    };
+
+    it('deve chamar service.list com companyId e actorUserId', async () => {
+      service.list.mockResolvedValue(paginatedResult);
+
+      const req = { user: { userId: 'actor-uuid', companyId: 'company-alpha', role: 'company_owner' } };
+      const result = await controller.list(req, { page: 1, limit: 20 });
+
+      expect(service.list).toHaveBeenCalledWith('company-alpha', 'actor-uuid', { page: 1, limit: 20 });
+      expect(result).toEqual(paginatedResult);
+    });
+
+    it('deve propagar exceções do service', async () => {
+      service.list.mockRejectedValue(new BadRequestException());
+
+      const req = { user: { userId: 'actor-uuid', companyId: 'company-alpha', role: 'company_owner' } };
+      await expect(controller.list(req, {})).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  // =====================================================================
+  // GET /customers/search — search
+  // =====================================================================
+  describe('search — GET /customers/search', () => {
+    it('deve chamar service.search com companyId e actorUserId', async () => {
+      service.search.mockResolvedValue({ items: [], page: 1, limit: 20, total: 0, totalPages: 0 });
+
+      const req = { user: { userId: 'actor-uuid', companyId: 'company-alpha', role: 'company_owner' } };
+      const result = await controller.search(req, { name: 'João', page: 1, limit: 20 });
+
+      expect(service.search).toHaveBeenCalledWith('company-alpha', 'actor-uuid', { name: 'João', page: 1, limit: 20 });
+      expect(result).toBeDefined();
+    });
+
+    it('deve propagar exceções do service', async () => {
+      service.search.mockRejectedValue(new BadRequestException('Nome deve ter no mínimo 3 caracteres'));
+
+      const req = { user: { userId: 'actor-uuid', companyId: 'company-alpha', role: 'company_owner' } };
+      await expect(controller.search(req, { name: 'Jo' })).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  // =====================================================================
+  // GET /customers/:companyCustomerId — findById
+  // =====================================================================
+  describe('findById — GET /customers/:companyCustomerId', () => {
+    it('deve chamar service.findById com companyId, actorUserId e companyCustomerId', async () => {
+      const detailResult = { id: 'cc-1', name: 'João', phone: '(81) 99999-1234', email: null, internalCode: null, status: 'active', source: 'manual', joinedAt: new Date(), lastAttendedAt: null, notes: null, birthDate: '1990-05-15' };
+      service.findById.mockResolvedValue(detailResult);
+
+      const req = { user: { userId: 'actor-uuid', companyId: 'company-alpha', role: 'company_owner' } };
+      const result = await controller.findById(req, 'cc-1');
+
+      expect(service.findById).toHaveBeenCalledWith('company-alpha', 'actor-uuid', 'cc-1', 'company_owner');
+      expect(result).toEqual(detailResult);
+    });
+
+    it('deve propagar NotFoundException', async () => {
+      service.findById.mockRejectedValue(new NotFoundException());
+
+      const req = { user: { userId: 'actor-uuid', companyId: 'company-alpha', role: 'company_owner' } };
+      await expect(controller.findById(req, 'cc-inexistente')).rejects.toThrow(NotFoundException);
+    });
   });
 });
