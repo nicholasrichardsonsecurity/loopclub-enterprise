@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Patch, Query, Req, UseGuards } from '@nestjs/common';
+
+type AuthenticatedRequest = {
+  user: {
+    companyId: string;
+    userId: string;
+    role: 'company_owner' | 'employee';
+  };
+};
 import { ApiBearerAuth, ApiForbiddenResponse, ApiQuery, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -6,6 +14,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RequireCompany } from '../tenant/decorators/require-company.decorator';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
+import { UpdateCompanyCustomerDto } from './dto/update-company-customer.dto';
 import { ListCustomersDto } from './dto/list-customers.dto';
 import { SearchCustomersDto } from './dto/search-customers.dto';
 
@@ -57,5 +66,26 @@ export class CustomersController {
     const actorRole = req.user.role;
 
     return this.customersService.findById(companyId, actorUserId, companyCustomerId, actorRole);
+  }
+
+  @Patch(':companyCustomerId')
+  @Roles('company_owner', 'employee')
+  @RequireCompany()
+  async updateCompanyCustomer(
+    @Req() req: AuthenticatedRequest,
+    @Param('companyCustomerId') companyCustomerId: string,
+    @Body() dto: UpdateCompanyCustomerDto,
+  ) {
+    const companyId = req.user.companyId;
+    const actorUserId = req.user.userId;
+    const actorRole = req.user.role;
+
+    return this.customersService.updateCompanyCustomer(
+      companyId,
+      actorUserId,
+      companyCustomerId,
+      actorRole,
+      dto,
+    );
   }
 }
