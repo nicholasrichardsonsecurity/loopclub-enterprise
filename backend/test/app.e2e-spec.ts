@@ -474,9 +474,171 @@ describe('Testes e2e do LoopClub', () => {
   });
 
   // =======================================================================
+  // Customers — PATCH /customers/:companyCustomerId — Atualização de vínculo
+  // =======================================================================
+  describe('PATCH /customers/:companyCustomerId — Atualização de vínculo', () => {
+    // Helper to create a customer for a given owner and return the companyCustomerId
+    async function createCustomer(token: string, body: any) {
+      const res = await postCustomer(ctx.app, token, body);
+      expect(res.status).toBe(201);
+      return res.body.companyCustomerId as string;
+    }
+
+    // 1. company_owner atualiza internalCode
+    it('C40: company_owner atualiza internalCode', async () => {
+      const token = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+      const ccId = await createCustomer(token, { name: 'PatchOwner1', phone: '(81) 99999-4001', internalCode: 'OLD' });
+      const patchRes = await request(ctx.app.getHttpServer())
+        .patch(`/customers/${ccId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ internalCode: 'NEWCODE' });
+      expect(patchRes.status).toBe(200);
+      expect(patchRes.body).toHaveProperty('internalCode', 'NEWCODE');
+      const link = await findCompanyCustomer(ctx.prisma, patchRes.body.customerId, patchRes.body.companyId);
+      expect(link?.internalCode).toBe('NEWCODE');
+    });
+
+    // 2. employee atualiza notes
+    it('C41: employee atualiza notes', async () => {
+      const token = await loginAs(ctx.app, 'employee.e2e@loopclub.dev');
+      const ccId = await createCustomer(token, { name: 'PatchEmp1', phone: '(81) 99999-4002' });
+      const patchRes = await request(ctx.app.getHttpServer())
+        .patch(`/customers/${ccId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ notes: 'Nova nota' });
+      expect(patchRes.status).toBe(200);
+      expect(patchRes.body).toHaveProperty('notes', 'Nova nota');
+      const link = await findCompanyCustomer(ctx.prisma, patchRes.body.customerId, patchRes.body.companyId);
+      expect(link?.notes).toBe('Nova nota');
+    });
+
+    // 3. internalCode null remove o valor
+    it('C42: internalCode null remove o valor', async () => {
+      const token = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+      const ccId = await createCustomer(token, { name: 'PatchNull1', phone: '(81) 99999-4003', internalCode: 'TO-REMOVE' });
+      const patchRes = await request(ctx.app.getHttpServer())
+        .patch(`/customers/${ccId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ internalCode: null });
+      expect(patchRes.status).toBe(200);
+      expect(patchRes.body).toHaveProperty('internalCode', null);
+      const link = await findCompanyCustomer(ctx.prisma, patchRes.body.customerId, patchRes.body.companyId);
+      expect(link?.internalCode).toBeNull();
+    });
+
+    // 4. notes null remove o valor
+    it('C43: notes null remove o valor', async () => {
+      const token = await loginAs(ctx.app, 'employee.e2e@loopclub.dev');
+      const ccId = await createCustomer(token, { name: 'PatchNull2', phone: '(81) 99999-4004', notes: 'para remover' });
+      const patchRes = await request(ctx.app.getHttpServer())
+        .patch(`/customers/${ccId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ notes: null });
+      expect(patchRes.status).toBe(200);
+      expect(patchRes.body).toHaveProperty('notes', null);
+      const link = await findCompanyCustomer(ctx.prisma, patchRes.body.customerId, patchRes.body.companyId);
+      expect(link?.notes).toBeNull();
+    });
+
+    // 5. campo ausente preserva o valor atual
+    it('C44: campo ausente preserva o valor atual', async () => {
+      const token = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+      const ccId = await createCustomer(token, { name: 'PatchPreserve', phone: '(81) 99999-4005', internalCode: 'KEEP', notes: 'KEEP' });
+      const patchRes = await request(ctx.app.getHttpServer())
+        .patch(`/customers/${ccId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ internalCode: 'NEW' }); // notes omitted
+      expect(patchRes.status).toBe(200);
+      expect(patchRes.body).toHaveProperty('internalCode', 'NEW');
+      expect(patchRes.body).toHaveProperty('notes', 'KEEP');
+      const link = await findCompanyCustomer(ctx.prisma, patchRes.body.customerId, patchRes.body.companyId);
+      expect(link?.internalCode).toBe('NEW');
+      expect(link?.notes).toBe('KEEP');
+    });
+
+    // 6. vínculo inexistente retorna 404
+    it('C45: vínculo inexistente retorna 404', async () => {
+      const token = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+      const fakeId = 'nonexistent-id-1234';
+      const res = await request(ctx.app.getHttpServer())
+        .patch(`/customers/${fakeId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ internalCode: 'ANY' });
+      expect(res.status).toBe(404);
+    });
+
+    // 7. vínculo de outra empresa retorna 404
+    it('C46: vínculo de outra empresa retorna 404', async () => {
+      const tokenAlpha = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+      const ccId = await createCustomer(tokenAlpha, { name: 'PatchCross', phone: '(81) 99999-4006' });
+      const tokenBeta = await loginAs(ctx.app, 'owner.beta.e2e@loopclub.dev');
+      const res = await request(ctx.app.getHttpServer())
+        .patch(`/customers/${ccId}`)
+        .set('Authorization', `Bearer ${tokenBeta}`)
+        .send({ internalCode: 'HACK' });
+      expect(res.status).toBe(404);
+      // garante que valor original não mudou
+      const link = await findCompanyCustomer(ctx.prisma, (await findCustomerByPhone(ctx.prisma, '(81) 99999-4006'))!.id, (await ctx.prisma.company.findUnique({ where: { document: '00000000000191' }, select: { id: true } }))!.id);
+      expect(link?.internalCode).toBeNull();
+    });
+
+    // 8. admin retorna 403
+    it('C47: admin retorna 403', async () => {
+      const token = await loginAs(ctx.app, 'admin.e2e@loopclub.dev');
+      const res = await request(ctx.app.getHttpServer())
+        .patch('/customers/some-id')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ internalCode: 'X' });
+      expect(res.status).toBe(403);
+    });
+
+    // 9. client retorna 403
+    it('C48: client retorna 403', async () => {
+      const token = await loginAs(ctx.app, 'client.e2e@loopclub.dev');
+      const res = await request(ctx.app.getHttpServer())
+        .patch('/customers/some-id')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ internalCode: 'X' });
+      expect(res.status).toBe(403);
+    });
+
+    // 10. sem autenticação retorna 401
+    it('C49: sem autenticação retorna 401', async () => {
+      const res = await request(ctx.app.getHttpServer())
+        .patch('/customers/some-id')
+        .send({ internalCode: 'X' });
+      expect(res.status).toBe(401);
+    });
+
+    // 11. body com campo não permitido retorna 400
+    it('C50: body com campo não permitido retorna 400', async () => {
+      const token = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+      const ccId = await createCustomer(token, { name: 'PatchBad', phone: '(81) 99999-4007' });
+      const res = await request(ctx.app.getHttpServer())
+        .patch(`/customers/${ccId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ companyId: 'invalid' });
+      expect(res.status).toBe(400);
+    });
+
+    // 12. alteração persiste no banco (já coberto, reforço aqui)
+    it('C51: alteração persiste no banco', async () => {
+      const token = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
+      const ccId = await createCustomer(token, { name: 'PersistTest', phone: '(81) 99999-4008' });
+      const newNote = 'Persisted note';
+      const patchRes = await request(ctx.app.getHttpServer())
+        .patch(`/customers/${ccId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ notes: newNote });
+      expect(patchRes.status).toBe(200);
+      const link = await findCompanyCustomer(ctx.prisma, patchRes.body.customerId, patchRes.body.companyId);
+      expect(link?.notes).toBe(newNote);
+    });
+  });
+
+  // =======================================================================
   // Customers — GET /customers (listagem paginada)
   // =======================================================================
-
   describe('GET /customers — Listagem de clientes', () => {
     let alphaCompanyId: string;
 
