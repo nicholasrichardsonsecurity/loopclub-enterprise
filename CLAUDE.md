@@ -242,3 +242,83 @@ docker compose up -d postgres  # Iniciar PostgreSQL
 | [DECISIONS.md](docs/DECISIONS.md) | Novas decisões arquiteturais (ADR) |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Regras de contribuição |
 | [CHANGELOG.md](CHANGELOG.md) | Novas versões e mudanças |
+
+
+## Verificação obrigatória ao iniciar uma nova sessão
+
+Toda nova sessão, novo chat ou nova tarefa deve confirmar o repositório real antes de analisar, alterar ou criar arquivos.
+
+### Repositório oficial
+
+Caminho obrigatório:
+
+C:\Users\Nicho\OneDrive\Documentos\CLAUDE ARQUIVOS\SITE NOVO 1\LOOP CLUBE ENTERPRISE\loopclub_enterprise_sprint01
+
+Branch principal:
+
+main
+
+### Comandos obrigatórios no início de toda sessão
+
+Executar na raiz do repositório:
+
+Get-Location
+git rev-parse --show-toplevel
+git rev-parse --short HEAD
+git status --short
+git log -1 --oneline --decorate
+git fetch origin
+git status
+
+### Validações obrigatórias
+
+Antes de continuar, confirmar:
+
+* o caminho retornado por git rev-parse --show-toplevel é exatamente o repositório oficial;
+* a branch atual é main;
+* HEAD, main e origin/main apontam para o mesmo commit, salvo quando houver trabalho local autorizado;
+* git status não apresenta alterações inesperadas;
+* nenhum resultado antigo de outro chat deve ser usado como estado atual;
+* nenhuma lista de arquivos modificados deve ser assumida sem executar os comandos no terminal real;
+* capturas, relatórios ou mensagens anteriores não substituem o git status atual;
+* se o caminho estiver incorreto, executar Set-Location para o repositório oficial antes de continuar;
+* se o estado do Git divergir do informado pelo usuário, parar e apresentar os comandos e resultados reais;
+* nunca recomendar commit, restore, reset ou revert com base em contexto antigo.
+
+### Regra de contexto
+
+Chats novos não possuem garantia de contexto operacional anterior.
+
+Por isso:
+
+* sempre ler este CLAUDE.md;
+* sempre executar a verificação inicial;
+* sempre confiar no terminal atual e no Git atual;
+* nunca confiar apenas em relatórios produzidos em outro chat;
+* nunca declarar arquivos pendentes sem confirmar com git status --short;
+* nunca declarar working tree limpa sem confirmar com git status;
+* nunca modificar arquivos antes de validar caminho, branch e HEAD.
+
+### Comportamento quando o Git estiver limpo
+
+Se o resultado for:
+
+nothing to commit, working tree clean
+
+e main estiver sincronizada com origin/main, continuar a tarefa normalmente.
+
+### Comportamento quando houver alterações
+
+Se houver arquivos modificados:
+
+1. listar os arquivos;
+2. identificar se pertencem à tarefa atual;
+3. não fazer commit, restore, reset ou checkout automaticamente;
+4. não sobrescrever alterações;
+5. pedir confirmação antes de continuar;
+6. registrar claramente se as alterações são staged, unstaged ou untracked.
+
+### Proibição
+
+Nunca usar uma saída antiga de git status como evidência do estado atual do repositório.
+
