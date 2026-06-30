@@ -1,6 +1,9 @@
 import { CustomersService, CreateCustomerResult } from './customers.service';
-import { BadRequestException, ConflictException, InternalServerErrorException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { UpdateCompanyCustomerDto } from './dto/update-company-customer.dto';
 import { Prisma } from '@prisma/client';
+
+// Tipo de cliente da transação Prisma
+import { BadRequestException, ConflictException, InternalServerErrorException, NotFoundException, ForbiddenException } from '@nestjs/common';
 
 const HMAC_SECRET = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
@@ -14,6 +17,7 @@ const mockCompanyCustomerCreate = jest.fn();
 const mockCompanyCustomerFindMany = jest.fn();
 const mockCompanyCustomerCount = jest.fn();
 const mockCompanyCustomerFindFirst = jest.fn();
+const mockCompanyCustomerUpdate = jest.fn();
 const mockAuditLogCreate = jest.fn();
 const mock$transaction = jest.fn();
 
@@ -30,11 +34,12 @@ jest.mock('../../prisma.service', () => ({
       create: mockCustomerCreate,
     },
     companyCustomer: {
-      findUnique: mockCompanyCustomerFindUnique,
-      create: mockCompanyCustomerCreate,
-      findMany: mockCompanyCustomerFindMany,
-      count: mockCompanyCustomerCount,
-      findFirst: mockCompanyCustomerFindFirst,
+        findUnique: mockCompanyCustomerFindUnique,
+        findFirst: mockCompanyCustomerFindFirst,
+        update: mockCompanyCustomerUpdate,
+        create: mockCompanyCustomerCreate,
+        findMany: mockCompanyCustomerFindMany,
+        count: mockCompanyCustomerCount,
     },
     auditLog: {
       create: mockAuditLogCreate,
@@ -91,13 +96,29 @@ describe('CustomersService', () => {
     ...overrides,
   });
 
-  const runTransaction = (fn: (tx: any) => Promise<CreateCustomerResult>) => {
+  const runTransaction = <T>(fn: (tx: Tx) => Promise<T>): Promise<T> => fn({
+  customer: {
+    findUnique: mockCustomerFindUnique,
+    create: mockCustomerCreate,
+  },
+  companyCustomer: {
+    findFirst: mockCompanyCustomerFindFirst,
+    update: mockCompanyCustomerUpdate,
+    findUnique: mockCompanyCustomerFindUnique,
+    create: mockCompanyCustomerCreate,
+  },
+  auditLog: {
+    create: mockAuditLogCreate,
+  },
+});
     return fn({
       customer: {
         findUnique: mockCustomerFindUnique,
         create: mockCustomerCreate,
       },
       companyCustomer: {
+        findFirst: mockCompanyCustomerFindFirst,
+        update: mockCompanyCustomerUpdate,
         findUnique: mockCompanyCustomerFindUnique,
         create: mockCompanyCustomerCreate,
       },
@@ -110,7 +131,7 @@ describe('CustomersService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockConfigGet.mockReturnValue(HMAC_SECRET);
-    mock$transaction.mockImplementation((fn: any) => runTransaction(fn));
+    mock$transaction.mockImplementation(<T>(fn: (tx: Tx) => Promise<T>) => runTransaction(fn));
 
     // Valid company + active link by default
     mockCompanyFindUnique.mockResolvedValue({ id: COMPANY_ID, status: 'active' });
@@ -119,6 +140,196 @@ describe('CustomersService', () => {
     const { PrismaService } = require('../../prisma.service');
     const { ConfigService } = require('@nestjs/config');
     service = new CustomersService(new PrismaService(), new ConfigService());
+  });
+
+  // ===== Validação de empresa e ator =====
+
+  // ===== Atualização de CompanyCustomer =====
+  describe('updateCompanyCustomer', () => {
+    const updateDto = (value: UpdateCompanyCustomerDto): UpdateCompanyCustomerDto => value;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockConfigGet.mockReturnValue(HMAC_SECRET);
+      mockCompanyFindUnique.mockResolvedValue({ id: COMPANY_ID, status: 'active' });
+      mockCompanyUserFindUnique.mockResolvedValue({ status: 'active', role: 'owner' });
+    });
+
+    it('preserva internalCode ao atualizar apenas notes (Cenário A)', async () => {
+      const link = {
+        id: 'cc-1',
+        internalCode: 'CODIGO-ANTIGO',
+        notes: 'Nota antiga',
+        status: 'active',
+        source: 'manual',
+        joinedAt: new Date(),
+        lastAttendedAt: null,
+        customer: { name: 'Test', phoneE164: '+5581999990000', emailNormalized: null, birthDate: null },
+      };
+      mockCompanyCustomerFindFirst.mockResolvedValue(link);
+      // Simula a atualização apenas do campo notes
+      mockCompanyCustomerUpdate.mockResolvedValue({ ...link, notes: 'Nota nova' });
+      mockAuditLogCreate.mockResolvedValue({});
+      const result = await service.updateCompanyCustomer(
+        COMPANY_ID,
+        ACTOR_USER_ID,
+        link.id,
+        'company_owner',
+        { notes: 'Nota nova' },
+      );
+      // verifica que internalCode permanece o mesmo
+      expect(result.internalCode).toBe('CODIGO-ANTIGO');
+      // verifica que only notes foi enviado ao prisma
+      expect(mockCompanyCustomerUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { notes: 'Nota nova' },
+        }),
+      );
+      // garante que internalCode não está no objeto data
+      expect((mockCompanyCustomerUpdate.mock.calls[0][0] as any).data).not.toHaveProperty('internalCode');
+      // changedFields deve conter apenas "notes"
+      expect(mockAuditLogCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ metadata: { fields: ['notes'] } }),
+        }),
+      );
+    });
+
+    it('preserva notes ao atualizar apenas internalCode (Cenário B)', async () => {
+      const link = { id: 'cc-1', internalCode: null, notes: null, status: 'active', source: 'manual', joinedAt: new Date(), lastAttendedAt: null, customer: { name: 'Test', phoneE164: '+5581999990000', emailNormalized: null, birthDate: null } };
+      mockCompanyCustomerFindFirst.mockResolvedValue(link);
+      mockCompanyCustomerUpdate.mockResolvedValue({ ...link, notes: 'Nota' });
+      mockAuditLogCreate.mockResolvedValue({});
+      const result = await service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, link.id, 'company_owner', updateDto(null, 'Nota'));
+      expect(result.notes).toBe('Nota');
+    });
+
+    it('employee atualiza internalCode', async () => {
+      mockCompanyUserFindUnique.mockResolvedValue({ status: 'active', role: 'employee' });
+      const link = { id: 'cc-1', internalCode: null, notes: null, status: 'active', source: 'manual', joinedAt: new Date(), lastAttendedAt: null, customer: { name: 'Test', phoneE164: '+5581999990000', emailNormalized: null, birthDate: null } };
+      mockCompanyCustomerFindFirst.mockResolvedValue(link);
+      mockCompanyCustomerUpdate.mockResolvedValue({ ...link, internalCode: 'EMP' });
+      mockAuditLogCreate.mockResolvedValue({});
+      const result = await service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, link.id, 'employee', updateDto('EMP', null));
+      expect(result.internalCode).toBe('EMP');
+    });
+
+    it('atualiza os dois campos', async () => {
+      const link = { id: 'cc-1', internalCode: null, notes: null, status: 'active', source: 'manual', joinedAt: new Date(), lastAttendedAt: null, customer: { name: 'Test', phoneE164: '+5581999990000', emailNormalized: null, birthDate: null } };
+      mockCompanyCustomerFindFirst.mockResolvedValue(link);
+      mockCompanyCustomerUpdate.mockResolvedValue({ ...link, internalCode: 'C', notes: 'N' });
+      mockAuditLogCreate.mockResolvedValue({});
+      const result = await service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, link.id, 'company_owner', updateDto('C', 'N'));
+      expect(result.internalCode).toBe('C');
+      expect(result.notes).toBe('N');
+    });
+
+    it('remove internalCode com null', async () => {
+      const link = { id: 'cc-1', internalCode: 'OLD', notes: null, status: 'active', source: 'manual', joinedAt: new Date(), lastAttendedAt: null, customer: { name: 'Test', phoneE164: '+5581999990000', emailNormalized: null, birthDate: null } };
+      mockCompanyCustomerFindFirst.mockResolvedValue(link);
+      mockCompanyCustomerUpdate.mockResolvedValue({ ...link, internalCode: null });
+      mockAuditLogCreate.mockResolvedValue({});
+      const result = await service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, link.id, 'company_owner', updateDto(null, null));
+      expect(result.internalCode).toBeNull();
+    });
+
+    it('remove notes com null', async () => {
+      const link = { id: 'cc-1', internalCode: null, notes: 'OLD', status: 'active', source: 'manual', joinedAt: new Date(), lastAttendedAt: null, customer: { name: 'Test', phoneE164: '+5581999990000', emailNormalized: null, birthDate: null } };
+      mockCompanyCustomerFindFirst.mockResolvedValue(link);
+      mockCompanyCustomerUpdate.mockResolvedValue({ ...link, notes: null });
+      mockAuditLogCreate.mockResolvedValue({});
+      const result = await service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, link.id, 'company_owner', updateDto(null, null));
+      expect(result.notes).toBeNull();
+    });
+
+    it('consulta usa id + companyId', async () => {
+      const link = { id: 'cc-1', internalCode: null, notes: null, status: 'active', source: 'manual', joinedAt: new Date(), lastAttendedAt: null, customer: { name: 'Test', phoneE164: '+5581999990000', emailNormalized: null, birthDate: null } };
+      mockCompanyCustomerFindFirst.mockResolvedValue(link);
+      mockCompanyCustomerUpdate.mockResolvedValue(link);
+      mockAuditLogCreate.mockResolvedValue({});
+      await service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, link.id, 'company_owner', updateDto(null, null));
+      expect(mockCompanyCustomerFindFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: link.id, companyId: COMPANY_ID } }));
+    });
+
+    it('recurso inexistente retorna 404', async () => {
+      mockCompanyCustomerFindFirst.mockResolvedValue(null);
+      await expect(service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, 'nonexistent', 'company_owner', updateDto(null, null))).rejects.toThrow(NotFoundException);
+    });
+
+    it('recurso de outro tenant retorna 404', async () => {
+      mockCompanyCustomerFindFirst.mockResolvedValue(null);
+      await expect(service.updateCompanyCustomer('other-company', ACTOR_USER_ID, 'cc-1', 'company_owner', updateDto(null, null))).rejects.toThrow(NotFoundException);
+    });
+
+    it('empresa inexistente', async () => {
+      mockCompanyFindUnique.mockResolvedValue(null);
+      await expect(service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, 'cc-1', 'company_owner', updateDto(null, null))).rejects.toThrow(NotFoundException);
+    });
+
+    it('empresa inativa', async () => {
+      mockCompanyFindUnique.mockResolvedValue({ id: COMPANY_ID, status: 'blocked' });
+      await expect(service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, 'cc-1', 'company_owner', updateDto(null, null))).rejects.toThrow(ForbiddenException);
+    });
+
+    it('vinculo do ator inexistente', async () => {
+      mockCompanyUserFindUnique.mockResolvedValue(null);
+      await expect(service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, 'cc-1', 'company_owner', updateDto(null, null))).rejects.toThrow(ForbiddenException);
+    });
+
+    it('vinculo do ator inativo', async () => {
+      mockCompanyUserFindUnique.mockResolvedValue({ status: 'blocked', role: 'owner' });
+      await expect(service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, 'cc-1', 'company_owner', updateDto(null, null))).rejects.toThrow(ForbiddenException);
+    });
+
+    it('transação é executada', async () => {
+      const link = { id: 'cc-1', internalCode: null, notes: null, status: 'active', source: 'manual', joinedAt: new Date(), lastAttendedAt: null, customer: { name: 'Test', phoneE164: '+5581999990000', emailNormalized: null, birthDate: null } };
+      mockCompanyCustomerFindFirst.mockResolvedValue(link);
+      mockCompanyCustomerUpdate.mockResolvedValue({ ...link, internalCode: 'X' });
+      mockAuditLogCreate.mockResolvedValue({});
+      const result = await service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, link.id, 'company_owner', updateDto('X', null));
+      expect(result.internalCode).toBe('X');
+    });
+
+    it('AuditLog é criado sem conteúdo sensível', async () => {
+      const link = { id: 'cc-1', internalCode: null, notes: null, status: 'active', source: 'manual', joinedAt: new Date(), lastAttendedAt: null, customer: { name: 'Test', phoneE164: '+5581999990000', emailNormalized: null, birthDate: null } };
+      mockCompanyCustomerFindFirst.mockResolvedValue(link);
+      mockCompanyCustomerUpdate.mockResolvedValue({ ...link, notes: 'Secret' });
+      mockAuditLogCreate.mockResolvedValue({});
+      await service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, link.id, 'company_owner', updateDto(null, 'Secret'));
+      expect(mockAuditLogCreate).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ metadata: { fields: ['notes'] } }) }));
+    });
+
+    it('P2002 retorna 409 seguro', async () => {
+      const link = { id: 'cc-1', internalCode: null, notes: null, status: 'active', source: 'manual', joinedAt: new Date(), lastAttendedAt: null, customer: { name: 'Test', phoneE164: '+5581999990000', emailNormalized: null, birthDate: null } };
+      mockCompanyCustomerFindFirst.mockResolvedValue(link);
+      mockCompanyCustomerUpdate.mockRejectedValue(new Prisma.PrismaClientKnownRequestError('Unique constraint', { code: 'P2002', clientVersion: '5', meta: { target: ['companyId_internalCode'] } }));
+      await expect(service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, link.id, 'company_owner', updateDto('DUP', null))).rejects.toThrow(ConflictException);
+    });
+
+    it('erro inesperado não expõe detalhes', async () => {
+      const link = { id: 'cc-1', internalCode: null, notes: null, status: 'active', source: 'manual', joinedAt: new Date(), lastAttendedAt: null, customer: { name: 'Test', phoneE164: '+5581999990000', emailNormalized: null, birthDate: null } };
+      mockCompanyCustomerFindFirst.mockResolvedValue(link);
+      mockCompanyCustomerUpdate.mockRejectedValue(new Error('DB crash'));
+      await expect(service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, link.id, 'company_owner', updateDto('X', null))).rejects.toThrow(Error);
+    });
+
+    it('resposta não contém dados sensíveis', async () => {
+      const link = { id: 'cc-1', internalCode: null, notes: null, status: 'active', source: 'manual', joinedAt: new Date(), lastAttendedAt: null, customer: { name: 'Test', phoneE164: '+5581999990000', emailNormalized: null, birthDate: null } };
+      mockCompanyCustomerFindFirst.mockResolvedValue(link);
+      mockCompanyCustomerUpdate.mockResolvedValue({ ...link, internalCode: 'X' });
+      mockAuditLogCreate.mockResolvedValue({});
+      const result = await service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, link.id, 'company_owner', updateDto('X', null));
+      expect(result).not.toHaveProperty('cpfLookupHash');
+    });
+
+    it('nenhum campo global de Customer é atualizado', async () => {
+      const link = { id: 'cc-1', internalCode: null, notes: null, status: 'active', source: 'manual', joinedAt: new Date(), lastAttendedAt: null, customer: { name: 'Original', phoneE164: '+5581999990000', emailNormalized: null, birthDate: null } };
+      mockCompanyCustomerFindFirst.mockResolvedValue(link);
+      mockCompanyCustomerUpdate.mockResolvedValue({ ...link, internalCode: 'X' });
+      mockAuditLogCreate.mockResolvedValue({});
+      const result = await service.updateCompanyCustomer(COMPANY_ID, ACTOR_USER_ID, link.id, 'company_owner', updateDto('X', null));
+      expect(result.name).toBe('Original');
+    });
   });
 
   // ===== Validação de empresa e ator =====
@@ -624,7 +835,7 @@ describe('CustomersService', () => {
           customer: { name: 'João', phoneE164: '+5581999991234', emailNormalized: null },
         },
       ];
-      mock$transaction.mockImplementation((queries: any[]) => {
+      mock$transaction.mockImplementation((queries: Prisma.PrismaPromise<unknown>[]) => {
         return Promise.resolve([items, 1]);
       });
 
@@ -640,7 +851,7 @@ describe('CustomersService', () => {
 
     it('deve usar page padrão 1 quando omitido', async () => {
       const items: any[] = [];
-      mock$transaction.mockImplementation((queries: any[]) => {
+      mock$transaction.mockImplementation((queries: Prisma.PrismaPromise<unknown>[]) => {
         return Promise.resolve([items, 4]);
       });
 
@@ -661,7 +872,7 @@ describe('CustomersService', () => {
         notes: null,
         customer: { name: `Cliente ${i}`, phoneE164: `+558199999${String(i).padStart(4, '0')}`, emailNormalized: null },
       }));
-      mock$transaction.mockImplementation((queries: any[]) => {
+      mock$transaction.mockImplementation((queries: Prisma.PrismaPromise<unknown>[]) => {
         return Promise.resolve([items, 100]);
       });
 
@@ -682,7 +893,7 @@ describe('CustomersService', () => {
         notes: null,
         customer: { name: `Cliente ${i}`, phoneE164: `+558199999${String(i).padStart(4, '0')}`, emailNormalized: null },
       }));
-      mock$transaction.mockImplementation((queries: any[]) => {
+      mock$transaction.mockImplementation((queries: Prisma.PrismaPromise<unknown>[]) => {
         return Promise.resolve([items, 200]);
       });
 
@@ -702,7 +913,7 @@ describe('CustomersService', () => {
     });
 
     it('deve retornar total correto', async () => {
-      mock$transaction.mockImplementation((queries: any[]) => {
+      mock$transaction.mockImplementation((queries: Prisma.PrismaPromise<unknown>[]) => {
         return Promise.resolve([[], 42]);
       });
 
@@ -725,7 +936,7 @@ describe('CustomersService', () => {
           customer: { name: 'João', phoneE164: '+5581999991234', emailNormalized: null },
         },
       ];
-      mock$transaction.mockImplementation((queries: any[]) => {
+      mock$transaction.mockImplementation((queries: Prisma.PrismaPromise<unknown>[]) => {
         return Promise.resolve([items, 1]);
       });
 
@@ -800,7 +1011,7 @@ describe('CustomersService', () => {
     });
 
     it('deve retornar paginação correta', async () => {
-      mock$transaction.mockImplementation((queries: any[]) => {
+      mock$transaction.mockImplementation((queries: Prisma.PrismaPromise<unknown>[]) => {
         return Promise.resolve([[], 5]);
       });
 

@@ -10,6 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
+import { UpdateCompanyCustomerDto } from './dto/update-company-customer.dto';
 import { ListCustomersDto } from './dto/list-customers.dto';
 import { SearchCustomersDto } from './dto/search-customers.dto';
 import { normalizeBrazilianPhoneToE164, PhoneError } from './helpers/phone.helper';
@@ -43,6 +44,7 @@ const MAX_BIRTH_YEAR = 1900;
 
 @Injectable()
 export class CustomersService {
+  // ... existing code ...
   private readonly logger = new Logger(CustomersService.name);
   private readonly cpfHmacSecret: string;
 
@@ -413,6 +415,115 @@ export class CustomersService {
     }
 
     return toCustomerDetailItem(link);
+  }
+
+  // Atualiza campos permitidos de um CompanyCustomer
+  async updateCompanyCustomer(
+    companyId: string,
+    actorUserId: string,
+    companyCustomerId: string,
+    actorRole: 'company_owner' | 'employee',
+    dto: UpdateCompanyCustomerDto,
+  ): Promise<CustomerListResult> {
+    // Reutiliza validação de empresa e ator
+    await this.validateCompanyAndActor(companyId, actorUserId);
+
+    // Busca vínculo garantindo tenant
+    const existing = await this.prisma.companyCustomer.findFirst({
+      where: { id: companyCustomerId, companyId },
+      select: {
+        id: true,
+        internalCode: true,
+        notes: true,
+        status: true,
+        source: true,
+        joinedAt: true,
+        lastAttendedAt: true,
+        customer: {
+          select: { name: true, phoneE164: true, emailNormalized: true },
+        },
+      },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Cliente não encontrado');
+    }
+
+    // Monta dados de atualização apenas dos campos permitidos
+    const data: { internalCode?: string | null; notes?: string | null } = {};
+    const changedFields: string[] = [];
+    if (dto.internalCode !== undefined) {
+      const newVal = dto.internalCode?.trim() ?? null;
+      if (newVal !== existing.internalCode) {
+        data.internalCode = newVal;
+        changedFields.push('internalCode');
+      }
+    }
+    if (dto.notes !== undefined) {
+      const newVal = dto.notes?.trim() ?? null;
+      if (newVal !== existing.notes) {
+        data.notes = newVal;
+        changedFields.push('notes');
+      }
+    }
+
+    // Caso nada mudou (teoricamente impossível por validação), simplesmente retorna atual
+    if (Object.keys(data).length === 0) {
+      return toCustomerListItem({
+        id: existing.id,
+        internalCode: existing.internalCode,
+        status: existing.status,
+        source: existing.source,
+        joinedAt: existing.joinedAt,
+        lastAttendedAt: existing.lastAttendedAt,
+        notes: existing.notes,
+        customer: existing.customer,
+      });
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      let updated;
+      try {
+        updated = await tx.companyCustomer.update({
+          where: { id: companyCustomerId },
+          data,
+        });
+      } catch (err) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+          const target = extractP2002Target(err);
+          if (target === 'companyId_internalCode') {
+            throw new ConflictException('Código interno já em uso nesta empresa');
+          }
+          // Qualquer outro conflito devolve erro genérico
+          throw new ConflictException('Conflito ao atualizar vínculo');
+        }
+        throw err;
+      }
+
+      // Registrar auditoria com lista de campos alterados
+      await tx.auditLog.create({
+        data: {
+          userId: actorUserId,
+          companyId,
+          action: 'customer.link.update',
+          entity: 'CompanyCustomer',
+          entityId: companyCustomerId,
+          metadata: { fields: changedFields },
+        },
+      });
+
+      // Retornar resposta mapeada (sem dados sensíveis)
+      return toCustomerListItem({
+        id: updated.id,
+        internalCode: updated.internalCode,
+        status: updated.status,
+        source: updated.source,
+        joinedAt: updated.joinedAt,
+        lastAttendedAt: updated.lastAttendedAt,
+        notes: updated.notes,
+        customer: existing.customer,
+      });
+    });
   }
 
   private async validateCompanyAndActor(companyId: string, actorUserId: string): Promise<void> {
