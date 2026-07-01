@@ -494,7 +494,12 @@ describe('Testes e2e do LoopClub', () => {
         .send({ internalCode: 'NEWCODE' });
       expect(patchRes.status).toBe(200);
       expect(patchRes.body).toHaveProperty('internalCode', 'NEWCODE');
-      const link = await findCompanyCustomer(ctx.prisma, patchRes.body.customerId, patchRes.body.companyId);
+      const link = await ctx.prisma.companyCustomer.findFirst({
+        where: {
+          id: ccId,
+          companyId: (await ctx.prisma.company.findUnique({ where: { document: '00000000000191' }, select: { id: true } }))!.id,
+        },
+      });
       expect(link?.internalCode).toBe('NEWCODE');
     });
 
@@ -508,7 +513,12 @@ describe('Testes e2e do LoopClub', () => {
         .send({ notes: 'Nova nota' });
       expect(patchRes.status).toBe(200);
       expect(patchRes.body).toHaveProperty('notes', 'Nova nota');
-      const link = await findCompanyCustomer(ctx.prisma, patchRes.body.customerId, patchRes.body.companyId);
+      const link = await ctx.prisma.companyCustomer.findFirst({
+        where: {
+          id: ccId,
+          companyId: (await ctx.prisma.company.findUnique({ where: { document: '00000000000191' }, select: { id: true } }))!.id,
+        },
+      });
       expect(link?.notes).toBe('Nova nota');
     });
 
@@ -522,7 +532,12 @@ describe('Testes e2e do LoopClub', () => {
         .send({ internalCode: null });
       expect(patchRes.status).toBe(200);
       expect(patchRes.body).toHaveProperty('internalCode', null);
-      const link = await findCompanyCustomer(ctx.prisma, patchRes.body.customerId, patchRes.body.companyId);
+      const link = await ctx.prisma.companyCustomer.findFirst({
+        where: {
+          id: ccId,
+          companyId: (await ctx.prisma.company.findUnique({ where: { document: '00000000000191' }, select: { id: true } }))!.id,
+        },
+      });
       expect(link?.internalCode).toBeNull();
     });
 
@@ -536,7 +551,12 @@ describe('Testes e2e do LoopClub', () => {
         .send({ notes: null });
       expect(patchRes.status).toBe(200);
       expect(patchRes.body).toHaveProperty('notes', null);
-      const link = await findCompanyCustomer(ctx.prisma, patchRes.body.customerId, patchRes.body.companyId);
+      const link = await ctx.prisma.companyCustomer.findFirst({
+        where: {
+          id: ccId,
+          companyId: (await ctx.prisma.company.findUnique({ where: { document: '00000000000191' }, select: { id: true } }))!.id,
+        },
+      });
       expect(link?.notes).toBeNull();
     });
 
@@ -551,7 +571,12 @@ describe('Testes e2e do LoopClub', () => {
       expect(patchRes.status).toBe(200);
       expect(patchRes.body).toHaveProperty('internalCode', 'NEW');
       expect(patchRes.body).toHaveProperty('notes', 'KEEP');
-      const link = await findCompanyCustomer(ctx.prisma, patchRes.body.customerId, patchRes.body.companyId);
+      const link = await ctx.prisma.companyCustomer.findFirst({
+        where: {
+          id: ccId,
+          companyId: (await ctx.prisma.company.findUnique({ where: { document: '00000000000191' }, select: { id: true } }))!.id,
+        },
+      });
       expect(link?.internalCode).toBe('NEW');
       expect(link?.notes).toBe('KEEP');
     });
@@ -572,14 +597,46 @@ describe('Testes e2e do LoopClub', () => {
       const tokenAlpha = await loginAs(ctx.app, 'owner.alpha.e2e@loopclub.dev');
       const ccId = await createCustomer(tokenAlpha, { name: 'PatchCross', phone: '(81) 99999-4006' });
       const tokenBeta = await loginAs(ctx.app, 'owner.beta.e2e@loopclub.dev');
+
+      const alphaCompany = await ctx.prisma.company.findUnique({
+        where: { document: '00000000000191' },
+        select: { id: true },
+      });
+      expect(alphaCompany).not.toBeNull();
+      if (!alphaCompany) {
+        throw new Error('Empresa Alpha não encontrada no seed e2e');
+      }
+
+      const before = await ctx.prisma.companyCustomer.findFirst({
+        where: {
+          id: ccId,
+          companyId: alphaCompany.id,
+        },
+      });
+      expect(before).not.toBeNull();
+      if (!before) {
+        throw new Error('Vínculo da Empresa Alpha não encontrado antes do PATCH');
+      }
+
       const res = await request(ctx.app.getHttpServer())
         .patch(`/customers/${ccId}`)
         .set('Authorization', `Bearer ${tokenBeta}`)
         .send({ internalCode: 'HACK' });
       expect(res.status).toBe(404);
-      // garante que valor original não mudou
-      const link = await findCompanyCustomer(ctx.prisma, (await findCustomerByPhone(ctx.prisma, '(81) 99999-4006'))!.id, (await ctx.prisma.company.findUnique({ where: { document: '00000000000191' }, select: { id: true } }))!.id);
-      expect(link?.internalCode).toBeNull();
+
+      const after = await ctx.prisma.companyCustomer.findFirst({
+        where: {
+          id: ccId,
+          companyId: alphaCompany.id,
+        },
+      });
+      expect(after).not.toBeNull();
+      if (!after) {
+        throw new Error('Vínculo da Empresa Alpha não encontrado após o PATCH');
+      }
+
+      expect(after.internalCode).toBe(before.internalCode);
+      expect(after.notes).toBe(before.notes);
     });
 
     // 8. admin retorna 403
@@ -631,7 +688,12 @@ describe('Testes e2e do LoopClub', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({ notes: newNote });
       expect(patchRes.status).toBe(200);
-      const link = await findCompanyCustomer(ctx.prisma, patchRes.body.customerId, patchRes.body.companyId);
+      const link = await ctx.prisma.companyCustomer.findFirst({
+        where: {
+          id: ccId,
+          companyId: (await ctx.prisma.company.findUnique({ where: { document: '00000000000191' }, select: { id: true } }))!.id,
+        },
+      });
       expect(link?.notes).toBe(newNote);
     });
   });
