@@ -42,6 +42,11 @@
 
 ## Visão Geral
 
+## Documentação de implantação
+
+- [Guia de Deploy em Debian 12](docs/DEPLOY_DEBIAN_12.md)
+- [Ambiente de Homologação](docs/HOMOLOGACAO.md)
+
 O LoopClub oferece um aplicativo único onde clientes acumulam pontos e trocam por recompensas, enquanto empresas gerenciam seus programas de fidelidade por um painel web centralizado. Uma única base de código atende clientes, funcionários, empresas e administração master.
 
 > Projeto em desenvolvimento ativo. Consulte [STATUS.md](docs/STATUS.md) para detalhes.
